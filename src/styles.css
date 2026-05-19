@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* ── JTech App Store theme tokens ───────────────────────────────────────── */
+@theme {
+  --color-ink: #1f2430;
+  --color-muted: #6b7280;
+  --color-paper: #f8f7f4;
+  --color-surface: #ffffff;
+  --color-line: #e7e4dc;
+
+  --color-brand: #1d3a8a;
+  --color-brand-dark: #142a63;
+  --color-brand-light: #e8edf9;
+
+  --color-gold: #d4a017;
+  --color-gold-dark: #a87d0c;
+  --color-gold-light: #faf3df;
+
+  --color-good: #15803d;
+  --color-bad: #b91c1c;
+  --color-warn: #b45309;
+
+  --font-display: "Frank Ruhl Libre", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --radius-card: 0.9rem;
+}
+
+/* ── base ───────────────────────────────────────────────────────────────── */
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+* {
+  box-sizing: border-box;
+}
+
+/* ── shared helpers ─────────────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.jt-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+.jt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  border-radius: 0.6rem;
+  padding: 0.6rem 1.1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.jt-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.jt-btn-primary {
+  background: var(--color-brand);
+  color: #fff;
+}
+.jt-btn-primary:hover {
+  background: var(--color-brand-dark);
+}
+.jt-btn-gold {
+  background: var(--color-gold);
+  color: #2a1f00;
+}
+.jt-btn-gold:hover {
+  background: var(--color-gold-dark);
+  color: #fff;
+}
+.jt-btn-ghost {
+  background: transparent;
+  color: var(--color-brand);
+  border-color: var(--color-line);
+}
+.jt-btn-ghost:hover {
+  background: var(--color-brand-light);
+}
+
+.jt-input {
+  width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  background: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  color: var(--color-ink);
+}
+.jt-input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-light);
+}
+.jt-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--color-ink);
+}
+
+/* status pill */
+.jt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.4rem;
+}
+
+/* subtle dot pattern used in hero / empty states */
+.jt-mosaic {
+  background-image: radial-gradient(var(--color-brand-light) 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8d4c8;
+  border-radius: 8px;
+}
