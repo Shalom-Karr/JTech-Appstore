@@ -112,14 +112,10 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <label class="jt-label" for="version">Version</label>
               <input id="version" name="version" class="jt-input" placeholder="1.0.0" [(ngModel)]="version" />
-            </div>
-            <div>
-              <label class="jt-label" for="price">Price (USD)</label>
-              <input id="price" name="price" type="number" min="0" step="1" class="jt-input" [(ngModel)]="price" />
             </div>
             <div>
               <label class="jt-label" for="size">Size (MB)</label>
@@ -151,7 +147,7 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
           </div>
 
           <div>
-            <label class="jt-label" for="icon">App icon URL</label>
+            <label class="jt-label" for="icon">App icon</label>
             <div class="flex items-center gap-3">
               <div class="w-16 h-16 shrink-0 rounded-2xl bg-paper border border-line overflow-hidden flex items-center justify-center text-muted text-xl">
                 @if (iconUrl().trim()) {
@@ -160,15 +156,54 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
                   <span>📦</span>
                 }
               </div>
-              <input id="icon" name="icon" class="jt-input" placeholder="https://…" [(ngModel)]="iconUrl" />
+              <div
+                class="flex-1 rounded-xl border border-dashed border-line bg-surface-2 px-4 py-3 text-center text-sm text-muted cursor-pointer transition hover:border-ink/40 hover:bg-paper"
+                [class.border-ink]="iconDragOver()"
+                (click)="iconInput.click()"
+                (dragover)="$event.preventDefault(); iconDragOver.set(true)"
+                (dragleave)="iconDragOver.set(false)"
+                (drop)="onIconDrop($event)"
+              >
+                Drag &amp; drop an image here, or <span class="text-ink underline">browse</span> (max 2 MB)
+              </div>
+              <input
+                #iconInput
+                type="file"
+                accept="image/*"
+                class="hidden"
+                (change)="onIconPick($event)"
+              />
             </div>
+            <input
+              id="icon"
+              name="icon"
+              class="jt-input mt-2"
+              placeholder="…or paste an icon URL"
+              [(ngModel)]="iconUrl"
+            />
           </div>
 
           <div>
-            <label class="jt-label">Screenshot URLs</label>
-            <p class="text-xs text-muted mb-2">
-              📷 Real image upload isn't wired up in this prototype — paste image URLs.
-            </p>
+            <label class="jt-label">Screenshots</label>
+            <div
+              class="rounded-xl border border-dashed border-line bg-surface-2 px-4 py-4 text-center text-sm text-muted cursor-pointer transition hover:border-ink/40 hover:bg-paper mb-3"
+              [class.border-ink]="shotDragOver()"
+              (click)="shotInput.click()"
+              (dragover)="$event.preventDefault(); shotDragOver.set(true)"
+              (dragleave)="shotDragOver.set(false)"
+              (drop)="onShotDrop($event)"
+            >
+              Drag &amp; drop images here, or <span class="text-ink underline">browse</span> (max 2 MB each)
+            </div>
+            <input
+              #shotInput
+              type="file"
+              accept="image/*"
+              multiple
+              class="hidden"
+              (change)="onShotPick($event)"
+            />
+            <p class="text-xs text-muted mb-2">Or paste image URLs below.</p>
             <div class="flex flex-col gap-3">
               @for (url of screenshots(); track $index) {
                 <div class="flex items-start gap-3">
@@ -245,13 +280,15 @@ export class SubmitComponent {
   category = signal('');
   platform = signal<Platform>('Web');
   version = signal('1.0.0');
-  price = signal(0);
   sizeMb = signal(10);
   downloadUrl = signal('');
   description = signal('');
   iconUrl = signal('https://picsum.photos/seed/jt-new-app/512/512');
   screenshots = signal<string[]>(['https://picsum.photos/seed/jt-new-shot/900/560']);
   agree = signal(false);
+
+  iconDragOver = signal(false);
+  shotDragOver = signal(false);
 
   valid = computed(
     () =>
@@ -261,7 +298,6 @@ export class SubmitComponent {
       this.description().trim().length > 0 &&
       this.downloadUrl().trim().length > 0 &&
       this.iconUrl().trim().length > 0 &&
-      this.price() >= 0 &&
       this.agree(),
   );
 
@@ -273,7 +309,6 @@ export class SubmitComponent {
       this.category.set(a.category);
       this.platform.set(a.platform);
       this.version.set(a.version);
-      this.price.set(a.price);
       this.sizeMb.set(a.sizeMb);
       this.downloadUrl.set(a.downloadUrl);
       this.description.set(a.description);
@@ -291,6 +326,70 @@ export class SubmitComponent {
   }
   removeShot(index: number) {
     this.screenshots.update((s) => s.filter((_, i) => i !== index));
+  }
+
+  private readFile(file: File): Promise<string> | null {
+    if (!file.type.startsWith('image/')) {
+      this.toast.error(`"${file.name}" is not an image.`);
+      return null;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.toast.error(`"${file.name}" is larger than 2 MB.`);
+      return null;
+    }
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private async handleIconFile(file: File) {
+    const p = this.readFile(file);
+    if (!p) return;
+    try {
+      this.iconUrl.set(await p);
+    } catch {
+      this.toast.error('Could not read that image.');
+    }
+  }
+
+  private async handleShotFiles(files: FileList | File[]) {
+    for (const file of Array.from(files)) {
+      const p = this.readFile(file);
+      if (!p) continue;
+      try {
+        const url = await p;
+        this.screenshots.update((s) => [...s.filter((u) => u.trim()), url]);
+      } catch {
+        this.toast.error('Could not read that image.');
+      }
+    }
+  }
+
+  onIconPick(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) this.handleIconFile(file);
+    input.value = '';
+  }
+  onIconDrop(event: DragEvent) {
+    event.preventDefault();
+    this.iconDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.handleIconFile(file);
+  }
+  onShotPick(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) this.handleShotFiles(input.files);
+    input.value = '';
+  }
+  onShotDrop(event: DragEvent) {
+    event.preventDefault();
+    this.shotDragOver.set(false);
+    const files = event.dataTransfer?.files;
+    if (files?.length) this.handleShotFiles(files);
   }
 
   private cleanShots(): string[] {
@@ -313,7 +412,6 @@ export class SubmitComponent {
       category: this.category(),
       platform: this.platform(),
       version: this.version().trim() || '1.0.0',
-      price: Number(this.price()),
       downloadUrl: this.downloadUrl().trim(),
       sizeMb: Number(this.sizeMb()),
     };

@@ -44,8 +44,6 @@ export interface AppItem {
   category: string;
   platform: Platform;
   version: string;
-  /** USD; 0 means a free app. */
-  price: number;
   /** Where the app is downloaded from (or launched, for web apps). */
   downloadUrl: string;
   sizeMb: number;
@@ -66,6 +64,17 @@ export interface Review {
   authorId: string;
   rating: number; // 1–5
   content: string;
+  createdAt: string;
+  /** The developer's public response to this review (empty if none). */
+  developerReply: string;
+  /** When the developer replied (empty if no reply). */
+  replyAt: string;
+}
+
+/** A user's wishlist entry — apps they want to install later. */
+export interface Wishlist {
+  userId: string;
+  appId: string;
   createdAt: string;
 }
 

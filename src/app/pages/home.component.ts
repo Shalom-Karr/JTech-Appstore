@@ -90,6 +90,18 @@ import { CountPipe } from '../shared/pipes';
         </div>
       </section>
 
+      <!-- recently viewed -->
+      @if (recentApps().length) {
+        <section class="pb-10">
+          <h2 class="font-display text-2xl font-bold mb-5">👀 Recently viewed</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @for (app of recentApps(); track app.id) {
+              <jt-app-card [app]="app" />
+            }
+          </div>
+        </section>
+      }
+
       <!-- featured -->
       @if (featured().length) {
         <section class="pb-10">
@@ -152,6 +164,39 @@ import { CountPipe } from '../shared/pipes';
           }
         </div>
       </section>
+
+      <!-- why JTech App Store -->
+      <section class="pb-16">
+        <h2 class="font-display text-2xl font-bold mb-1">Why JTech App Store?</h2>
+        <p class="text-muted mb-6">A store the community can trust.</p>
+        <div class="jt-card p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          @for (prop of valueProps; track prop.title) {
+            <div>
+              <div class="text-3xl mb-2">{{ prop.icon }}</div>
+              <div class="font-semibold">{{ prop.title }}</div>
+              <p class="text-sm text-muted mt-1">{{ prop.text }}</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- testimonials -->
+      <section class="pb-16">
+        <h2 class="font-display text-2xl font-bold mb-1">From the community</h2>
+        <p class="text-muted mb-6">What JTech users are saying.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (t of testimonials; track t.name) {
+            <figure class="jt-card p-6 flex flex-col">
+              <div class="text-brand text-3xl leading-none font-display">“</div>
+              <blockquote class="text-ink/90 mt-1 flex-1">{{ t.quote }}</blockquote>
+              <figcaption class="mt-4 pt-4 border-t border-line">
+                <div class="font-semibold">{{ t.name }}</div>
+                <div class="text-sm text-muted">{{ t.role }}</div>
+              </figcaption>
+            </figure>
+          }
+        </div>
+      </section>
     </div>
   `,
 })
@@ -191,9 +236,51 @@ export class HomeComponent {
     { icon: '⬇️', title: 'Download', text: 'Add apps to your library and download them in one tap.' },
   ];
 
+  valueProps = [
+    {
+      icon: '🛡️',
+      title: 'Every app reviewed',
+      text: 'A JTech admin checks every submission before it goes live.',
+    },
+    {
+      icon: '🤝',
+      title: 'Built by the community',
+      text: 'Apps by and for the frum, kosher-tech community.',
+    },
+    {
+      icon: '🆓',
+      title: 'Always free',
+      text: 'No price tags, no paywalls — free to download and to publish.',
+    },
+    {
+      icon: '🔒',
+      title: 'Safe & kosher',
+      text: 'No inappropriate content and no deceptive ads.',
+    },
+  ];
+
+  testimonials = [
+    {
+      quote: 'Finally a place to find apps I can hand my kids without worrying. The reviews give me real peace of mind.',
+      name: 'Yossi K.',
+      role: 'Lakewood, NJ',
+    },
+    {
+      quote: 'I published my zmanim app here and reached the whole kehilla in a week. The submission process was simple.',
+      name: 'Chaim B.',
+      role: 'Developer · Monsey, NY',
+    },
+    {
+      quote: 'Love that everything is free and kosher. It is the first store I check when I need something new.',
+      name: 'Rivky S.',
+      role: 'Boro Park, NY',
+    },
+  ];
+
   private published = computed(() => this.store.publishedApps());
 
   featured = computed(() => this.store.featuredApps());
+  recentApps = computed(() => this.store.recentlyViewedApps());
   topApps = computed(() =>
     [...this.published()].sort((a, b) => b.downloadCount - a.downloadCount).slice(0, 6),
   );

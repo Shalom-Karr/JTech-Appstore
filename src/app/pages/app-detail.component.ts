@@ -9,7 +9,7 @@ import { AppCardComponent } from '../shared/app-card.component';
 import { EmptyStateComponent } from '../shared/empty-state.component';
 import { StarsComponent } from '../shared/stars.component';
 import { StatusBadgeComponent } from '../shared/status-badge.component';
-import { PricePipe, TimeAgoPipe } from '../shared/pipes';
+import { TimeAgoPipe } from '../shared/pipes';
 
 /** Full app page — gallery, info, reviews, download, and reporting. */
 @Component({
@@ -22,7 +22,6 @@ import { PricePipe, TimeAgoPipe } from '../shared/pipes';
     EmptyStateComponent,
     StarsComponent,
     StatusBadgeComponent,
-    PricePipe,
     TimeAgoPipe,
   ],
   template: `
@@ -72,6 +71,15 @@ import { PricePipe, TimeAgoPipe } from '../shared/pipes';
               @if (developer()?.verified) {
                 <span class="text-xs bg-brand-light text-brand px-1.5 py-0.5 rounded font-medium" title="Verified developer">✓ Verified</span>
               }
+              @if (canFollow()) {
+                <button
+                  type="button"
+                  class="jt-btn jt-btn-ghost text-xs py-0.5 px-2"
+                  (click)="toggleFollow()"
+                >
+                  {{ following() ? '✓ Following' : '+ Follow' }}
+                </button>
+              }
             </div>
             <div class="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <jt-stars [value]="rating().avg" />
@@ -79,18 +87,21 @@ import { PricePipe, TimeAgoPipe } from '../shared/pipes';
                 {{ rating().avg || '—' }}
                 ({{ rating().count }} review{{ rating().count === 1 ? '' : 's' }})
               </span>
+              @if (store.wishlistCount(id) > 0) {
+                <span class="text-sm text-muted">· ♥ {{ store.wishlistCount(id) }} wishlisted</span>
+              }
             </div>
           </div>
           <div class="flex flex-col items-stretch sm:items-end gap-2 sm:w-44">
-            <div class="font-display text-2xl font-bold text-brand text-center sm:text-right">
-              {{ a.price | price }}
-            </div>
             <button class="jt-btn jt-btn-primary w-full" (click)="download()">
               {{ installed() ? '↻ Download again' : '⬇ Get app' }}
             </button>
             @if (installed()) {
               <span class="text-xs text-good text-center sm:text-right">✓ In your library</span>
             }
+            <button class="jt-btn jt-btn-ghost w-full" (click)="toggleWishlist()">
+              {{ wishlisted() ? '♥ Wishlisted' : '♡ Wishlist' }}
+            </button>
             <button class="jt-btn jt-btn-ghost w-full" (click)="toggleReport()">⚑ Report</button>
           </div>
         </div>
@@ -206,6 +217,44 @@ import { PricePipe, TimeAgoPipe } from '../shared/pipes';
                     <div class="ml-auto"><jt-stars [value]="r.rating" size="0.85rem" /></div>
                   </div>
                   <p class="text-sm mt-2 text-ink/90">{{ r.content }}</p>
+
+                  @if (r.developerReply) {
+                    <div class="mt-3 ml-4 pl-3 border-l-2 border-line bg-surface-2 rounded-r-lg p-3">
+                      <div class="text-xs font-semibold text-brand">
+                        Developer's reply
+                        <span class="text-muted font-normal">· {{ r.replyAt | timeAgo }}</span>
+                      </div>
+                      <p class="text-sm mt-1 text-ink/90">{{ r.developerReply }}</p>
+                    </div>
+                  } @else if (isDeveloper()) {
+                    @if (replyOpen() === r.id) {
+                      <div class="mt-3 ml-4">
+                        <textarea
+                          class="jt-input"
+                          rows="2"
+                          placeholder="Reply to this review…"
+                          [ngModel]="replyText()"
+                          (ngModelChange)="replyText.set($event)"
+                        ></textarea>
+                        <div class="flex gap-2 mt-2">
+                          <button class="jt-btn jt-btn-primary text-sm py-1" (click)="submitReply(r.id)">
+                            Post reply
+                          </button>
+                          <button class="jt-btn jt-btn-ghost text-sm py-1" (click)="closeReply()">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    } @else {
+                      <button
+                        type="button"
+                        class="jt-btn jt-btn-ghost text-xs py-0.5 px-2 mt-2"
+                        (click)="openReply(r.id)"
+                      >
+                        Reply
+                      </button>
+                    }
+                  }
                 </div>
               }
             </div>
@@ -251,6 +300,9 @@ export class AppDetailComponent {
   reportReasons = REPORT_REASONS;
 
   private appId = signal<string>(this.route.snapshot.paramMap.get('id') ?? '');
+  get id() {
+    return this.appId();
+  }
 
   app = computed(() => this.store.appById(this.appId()));
   developer = computed(() => this.store.profileById(this.app()?.developerId));
@@ -264,6 +316,24 @@ export class AppDetailComponent {
   alreadyReviewed = computed(() => {
     const u = this.auth.currentUser();
     return u ? this.store.hasReviewed(this.appId(), u.id) : false;
+  });
+  wishlisted = computed(() => {
+    const u = this.auth.currentUser();
+    return u ? this.store.isWishlisted(u.id, this.appId()) : false;
+  });
+  isDeveloper = computed(() => {
+    const u = this.auth.currentUser();
+    return !!u && this.app()?.developerId === u.id;
+  });
+  canFollow = computed(() => {
+    const a = this.app();
+    if (!a) return false;
+    const u = this.auth.currentUser();
+    return !u || u.id !== a.developerId;
+  });
+  following = computed(() => {
+    const a = this.app();
+    return a ? this.store.isFollowing(a.developerId) : false;
   });
 
   meta = computed(() => {
@@ -299,6 +369,13 @@ export class AppDetailComponent {
   myRating = signal(5);
   myReview = signal('');
 
+  replyOpen = signal<string | null>(null);
+  replyText = signal('');
+
+  constructor() {
+    if (this.appId()) this.store.trackView(this.appId());
+  }
+
   download() {
     const a = this.app();
     if (!a) return;
@@ -309,6 +386,34 @@ export class AppDetailComponent {
     const u = this.auth.currentUser();
     this.store.download(a.id, u?.id ?? null);
     this.toast.success(u ? `Added "${a.name}" to your library` : `Downloading "${a.name}"…`);
+  }
+
+  async toggleWishlist() {
+    const u = this.auth.currentUser();
+    if (!u) {
+      this.toast.error('Log in to use your wishlist.');
+      return;
+    }
+    const a = this.app();
+    if (!a) return;
+    const wasWishlisted = this.wishlisted();
+    await this.store.toggleWishlist(u.id, a.id);
+    this.toast.success(
+      wasWishlisted ? `Removed "${a.name}" from your wishlist` : `Added "${a.name}" to your wishlist`,
+    );
+  }
+
+  toggleFollow() {
+    const a = this.app();
+    if (!a) return;
+    if (!this.auth.isLoggedIn()) {
+      this.toast.error('Log in to follow developers.');
+      return;
+    }
+    const wasFollowing = this.following();
+    this.store.toggleFollow(a.developerId);
+    const name = this.developer()?.fullName ?? 'developer';
+    this.toast.success(wasFollowing ? `Unfollowed ${name}` : `Now following ${name}`);
   }
 
   toggleReport() {
@@ -350,5 +455,25 @@ export class AppDetailComponent {
     });
     this.myReview.set('');
     this.toast.success('Your review has been posted. Yasher koach!');
+  }
+
+  openReply(reviewId: string) {
+    this.replyText.set('');
+    this.replyOpen.set(reviewId);
+  }
+
+  closeReply() {
+    this.replyOpen.set(null);
+    this.replyText.set('');
+  }
+
+  async submitReply(reviewId: string) {
+    if (!this.replyText().trim()) {
+      this.toast.error('Please write a reply.');
+      return;
+    }
+    await this.store.replyToReview(reviewId, this.replyText().trim());
+    this.closeReply();
+    this.toast.success('Your reply has been posted.');
   }
 }

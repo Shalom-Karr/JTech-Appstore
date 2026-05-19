@@ -7,9 +7,17 @@ import { AppCardComponent } from '../shared/app-card.component';
 import { EmptyStateComponent } from '../shared/empty-state.component';
 
 type Sort = 'popular' | 'rating' | 'recent' | 'name';
-type PriceFilter = 'all' | 'free' | 'paid';
 
-/** Browse & search published apps with category / platform / price filters. */
+interface SavedSearch {
+  q: string;
+  category: string;
+  platform: Platform | '';
+  sort: Sort;
+}
+
+const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
+
+/** Browse & search published apps with category / platform filters. */
 @Component({
   selector: 'jt-browse',
   standalone: true,
@@ -19,22 +27,47 @@ type PriceFilter = 'all' | 'free' | 'paid';
       <h1 class="font-display text-2xl sm:text-3xl font-bold mb-4">Browse apps</h1>
 
       <!-- search -->
-      <div class="flex items-center bg-surface border border-line rounded-lg px-3 mb-4">
-        <span class="text-muted">🔍</span>
-        <input
-          [ngModel]="q()"
-          (ngModelChange)="q.set($event)"
-          placeholder="Search apps by name or description…"
-          class="flex-1 bg-transparent px-2 py-2.5 outline-none text-sm"
-          aria-label="Search apps"
-        />
-        @if (q()) {
-          <button (click)="q.set('')" class="text-muted hover:text-ink" aria-label="Clear search">✕</button>
+      <div class="relative mb-4">
+        <div class="flex items-center bg-surface border border-line rounded-lg px-3">
+          <span class="text-muted">🔍</span>
+          <input
+            [ngModel]="q()"
+            (ngModelChange)="onQueryInput($event)"
+            (focus)="showSuggestions.set(true)"
+            (blur)="onSearchBlur()"
+            placeholder="Search apps by name or description…"
+            class="flex-1 bg-transparent px-2 py-2.5 outline-none text-sm"
+            aria-label="Search apps"
+            autocomplete="off"
+          />
+          @if (q()) {
+            <button (click)="q.set('')" class="text-muted hover:text-ink" aria-label="Clear search">✕</button>
+          }
+        </div>
+
+        @if (showSuggestions() && suggestions().length) {
+          <ul
+            class="absolute z-20 left-0 right-0 mt-1 jt-card p-1 max-h-72 overflow-auto"
+            role="listbox"
+          >
+            @for (s of suggestions(); track s) {
+              <li>
+                <button
+                  type="button"
+                  class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-surface-2"
+                  (mousedown)="pickSuggestion(s)"
+                >
+                  <span class="text-muted">🔍</span>
+                  <span class="ml-2">{{ s }}</span>
+                </button>
+              </li>
+            }
+          </ul>
         }
       </div>
 
       <!-- filters -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div>
           <label class="jt-label" for="cat">Category</label>
           <select id="cat" class="jt-input" [ngModel]="category()" (ngModelChange)="category.set($event)">
@@ -54,14 +87,6 @@ type PriceFilter = 'all' | 'free' | 'paid';
           </select>
         </div>
         <div>
-          <label class="jt-label" for="price">Price</label>
-          <select id="price" class="jt-input" [ngModel]="price()" (ngModelChange)="price.set($event)">
-            <option value="all">Any price</option>
-            <option value="free">Free only</option>
-            <option value="paid">Paid only</option>
-          </select>
-        </div>
-        <div>
           <label class="jt-label" for="sort">Sort by</label>
           <select id="sort" class="jt-input" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
             <option value="popular">Most downloaded</option>
@@ -70,6 +95,35 @@ type PriceFilter = 'all' | 'free' | 'paid';
             <option value="name">Name (A–Z)</option>
           </select>
         </div>
+      </div>
+
+      <!-- saved searches -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button
+          (click)="saveSearch()"
+          class="jt-btn jt-btn-ghost text-sm py-1 px-3"
+        >
+          ⭐ Save this search
+        </button>
+        @for (s of savedSearches(); track $index) {
+          <span class="jt-pill bg-surface-2 border border-line flex items-center gap-1.5">
+            <button
+              type="button"
+              class="text-brand font-medium hover:underline"
+              (click)="applySearch(s)"
+            >
+              {{ searchLabel(s) }}
+            </button>
+            <button
+              type="button"
+              class="text-muted hover:text-ink"
+              aria-label="Delete saved search"
+              (click)="deleteSearch($index)"
+            >
+              ✕
+            </button>
+          </span>
+        }
       </div>
 
       <div class="flex items-center justify-between mb-4 text-sm text-muted">
@@ -108,8 +162,10 @@ export class BrowseComponent {
   q = signal('');
   category = signal('');
   platform = signal<Platform | ''>('');
-  price = signal<PriceFilter>('all');
   sort = signal<Sort>('popular');
+
+  showSuggestions = signal(false);
+  savedSearches = signal<SavedSearch[]>(this.loadSavedSearches());
 
   constructor() {
     const p = this.route.snapshot.queryParamMap;
@@ -118,8 +174,19 @@ export class BrowseComponent {
   }
 
   hasFilters = computed(
-    () => !!this.q() || !!this.category() || !!this.platform() || this.price() !== 'all',
+    () => !!this.q() || !!this.category() || !!this.platform(),
   );
+
+  suggestions = computed(() => {
+    const term = this.q().trim().toLowerCase();
+    if (!term) return [];
+    const names = [...new Set(this.store.publishedApps().map((a) => a.name))];
+    const prefix = names.filter((n) => n.toLowerCase().startsWith(term));
+    const substring = names.filter(
+      (n) => !n.toLowerCase().startsWith(term) && n.toLowerCase().includes(term),
+    );
+    return [...prefix, ...substring].slice(0, 6);
+  });
 
   results = computed(() => {
     const term = this.q().trim().toLowerCase();
@@ -135,8 +202,6 @@ export class BrowseComponent {
     }
     if (this.category()) apps = apps.filter((a) => a.category === this.category());
     if (this.platform()) apps = apps.filter((a) => a.platform === this.platform());
-    if (this.price() === 'free') apps = apps.filter((a) => a.price === 0);
-    if (this.price() === 'paid') apps = apps.filter((a) => a.price > 0);
 
     const sorted = [...apps];
     switch (this.sort()) {
@@ -156,11 +221,85 @@ export class BrowseComponent {
     return sorted;
   });
 
+  onQueryInput(value: string) {
+    this.q.set(value);
+    this.showSuggestions.set(true);
+  }
+
+  onSearchBlur() {
+    // delay so a suggestion mousedown can register first
+    setTimeout(() => this.showSuggestions.set(false), 120);
+  }
+
+  pickSuggestion(name: string) {
+    this.q.set(name);
+    this.showSuggestions.set(false);
+  }
+
+  private loadSavedSearches(): SavedSearch[] {
+    try {
+      const raw = localStorage.getItem(SAVED_SEARCHES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.slice(0, 6) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private persistSavedSearches(list: SavedSearch[]) {
+    this.savedSearches.set(list);
+    try {
+      localStorage.setItem(SAVED_SEARCHES_KEY, JSON.stringify(list));
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  saveSearch() {
+    const snapshot: SavedSearch = {
+      q: this.q(),
+      category: this.category(),
+      platform: this.platform(),
+      sort: this.sort(),
+    };
+    const existing = this.savedSearches().filter(
+      (s) =>
+        !(
+          s.q === snapshot.q &&
+          s.category === snapshot.category &&
+          s.platform === snapshot.platform &&
+          s.sort === snapshot.sort
+        ),
+    );
+    this.persistSavedSearches([snapshot, ...existing].slice(0, 6));
+  }
+
+  applySearch(s: SavedSearch) {
+    this.q.set(s.q);
+    this.category.set(s.category);
+    this.platform.set(s.platform);
+    this.sort.set(s.sort);
+    this.showSuggestions.set(false);
+  }
+
+  deleteSearch(index: number) {
+    const list = this.savedSearches().filter((_, i) => i !== index);
+    this.persistSavedSearches(list);
+  }
+
+  searchLabel(s: SavedSearch): string {
+    const parts: string[] = [];
+    if (s.q) parts.push(`"${s.q}"`);
+    if (s.category) parts.push(CATEGORIES.find((c) => c.slug === s.category)?.name ?? s.category);
+    if (s.platform) parts.push(s.platform);
+    if (!parts.length) parts.push('All apps');
+    return parts.join(' · ');
+  }
+
   clearFilters() {
     this.q.set('');
     this.category.set('');
     this.platform.set('');
-    this.price.set('all');
     this.router.navigate(['/browse']);
   }
 }

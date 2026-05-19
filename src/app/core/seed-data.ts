@@ -1,4 +1,4 @@
-import { AppItem, Install, Platform, Profile, Report, Review } from './models';
+import { AppItem, Install, Platform, Profile, Report, Review, Wishlist } from './models';
 
 /**
  * Mock seed data for the prototype. Loaded into IndexedDB on first run.
@@ -95,7 +95,6 @@ interface SeedApp {
   category: string;
   platform: Platform;
   version: string;
-  price: number;
   sizeMb: number;
   status: AppItem['status'];
   rejectionReason?: string;
@@ -116,7 +115,6 @@ const RAW: SeedApp[] = [
     category: 'torah',
     platform: 'Android',
     version: '3.2.0',
-    price: 0,
     sizeMb: 28,
     status: 'approved',
     featured: true,
@@ -134,7 +132,6 @@ const RAW: SeedApp[] = [
     category: 'tefilla',
     platform: 'iOS',
     version: '2.1.4',
-    price: 0,
     sizeMb: 41,
     status: 'approved',
     featured: true,
@@ -152,7 +149,6 @@ const RAW: SeedApp[] = [
     category: 'zmanim',
     platform: 'Web',
     version: '4.0.1',
-    price: 0,
     sizeMb: 6,
     status: 'approved',
     featured: true,
@@ -170,7 +166,6 @@ const RAW: SeedApp[] = [
     category: 'kids',
     platform: 'Android',
     version: '1.5.0',
-    price: 4,
     sizeMb: 64,
     status: 'approved',
     downloadCount: 2310,
@@ -187,7 +182,6 @@ const RAW: SeedApp[] = [
     category: 'chesed',
     platform: 'Web',
     version: '1.2.0',
-    price: 0,
     sizeMb: 5,
     status: 'approved',
     downloadCount: 1890,
@@ -204,7 +198,6 @@ const RAW: SeedApp[] = [
     category: 'kosher',
     platform: 'iOS',
     version: '2.0.0',
-    price: 2,
     sizeMb: 33,
     status: 'approved',
     downloadCount: 5640,
@@ -221,7 +214,6 @@ const RAW: SeedApp[] = [
     category: 'music',
     platform: 'Android',
     version: '1.8.2',
-    price: 0,
     sizeMb: 22,
     status: 'approved',
     downloadCount: 3470,
@@ -238,7 +230,6 @@ const RAW: SeedApp[] = [
     category: 'productivity',
     platform: 'Windows',
     version: '0.9.6',
-    price: 0,
     sizeMb: 48,
     status: 'approved',
     downloadCount: 980,
@@ -255,7 +246,6 @@ const RAW: SeedApp[] = [
     category: 'community',
     platform: 'Web',
     version: '2.3.0',
-    price: 0,
     sizeMb: 7,
     status: 'approved',
     downloadCount: 2740,
@@ -272,7 +262,6 @@ const RAW: SeedApp[] = [
     category: 'games',
     platform: 'Android',
     version: '1.1.0',
-    price: 0,
     sizeMb: 19,
     status: 'approved',
     downloadCount: 4060,
@@ -289,7 +278,6 @@ const RAW: SeedApp[] = [
     category: 'tefilla',
     platform: 'Web',
     version: '1.4.1',
-    price: 0,
     sizeMb: 4,
     status: 'approved',
     downloadCount: 6210,
@@ -306,7 +294,6 @@ const RAW: SeedApp[] = [
     category: 'zmanim',
     platform: 'iOS',
     version: '1.0.3',
-    price: 1,
     sizeMb: 12,
     status: 'approved',
     downloadCount: 1530,
@@ -323,7 +310,6 @@ const RAW: SeedApp[] = [
     category: 'torah',
     platform: 'Android',
     version: '1.0.0',
-    price: 0,
     sizeMb: 26,
     status: 'pending',
     downloadCount: 0,
@@ -340,7 +326,6 @@ const RAW: SeedApp[] = [
     category: 'productivity',
     platform: 'Web',
     version: '0.8.0',
-    price: 0,
     sizeMb: 9,
     status: 'pending',
     downloadCount: 0,
@@ -357,7 +342,6 @@ const RAW: SeedApp[] = [
     category: 'chesed',
     platform: 'Android',
     version: '1.0.0',
-    price: 0,
     sizeMb: 15,
     status: 'pending',
     downloadCount: 0,
@@ -374,7 +358,6 @@ const RAW: SeedApp[] = [
     category: 'games',
     platform: 'Android',
     version: '1.0.0',
-    price: 0,
     sizeMb: 55,
     status: 'rejected',
     rejectionReason:
@@ -393,7 +376,6 @@ const RAW: SeedApp[] = [
     category: 'tefilla',
     platform: 'Android',
     version: '0.4.0',
-    price: 0,
     sizeMb: 11,
     status: 'suspended',
     downloadCount: 740,
@@ -412,7 +394,6 @@ export const SEED_APPS: AppItem[] = RAW.map((a) => ({
   category: a.category,
   platform: a.platform,
   version: a.version,
-  price: a.price,
   downloadUrl: `https://downloads.jtechappstore.test/${a.seed}`,
   sizeMb: a.sizeMb,
   status: a.status,
@@ -430,11 +411,13 @@ const review = (
   rating: number,
   content: string,
   createdAt: string,
-): Review => ({ id, appId, authorId, rating, content, createdAt });
+  developerReply = '',
+  replyAt = '',
+): Review => ({ id, appId, authorId, rating, content, createdAt, developerReply, replyAt });
 
 export const SEED_REVIEWS: Review[] = [
   review('rv-1', 'app-dafconnect', 'u-you', 5, 'The synced shiurim are a game-changer for my commute. My streak is at 90 daf!', '2026-03-02T08:00:00Z'),
-  review('rv-2', 'app-dafconnect', 'u-tova', 4, 'Beautiful reader. Would love a tablet layout.', '2026-03-18T19:30:00Z'),
+  review('rv-2', 'app-dafconnect', 'u-tova', 4, 'Beautiful reader. Would love a tablet layout.', '2026-03-18T19:30:00Z', 'Thank you! A proper tablet layout is coming in the next release. — Moshe', '2026-03-19T08:00:00Z'),
   review('rv-3', 'app-siddurplus', 'u-moshe', 5, 'Finally a siddur that picks the right tefilla automatically. The night mode is perfect for Maariv.', '2026-02-10T21:00:00Z'),
   review('rv-4', 'app-siddurplus', 'u-dovid', 5, 'Clean and fast. Nusach Sefard is spot on.', '2026-03-05T07:15:00Z'),
   review('rv-5', 'app-zmanimlive', 'u-shaindy', 5, 'The most accurate zmanim app I have used. Candle-lighting reminder never misses.', '2026-02-20T16:00:00Z'),
@@ -464,4 +447,13 @@ export const SEED_REPORTS: Report[] = [
     resolved: false,
     createdAt: '2026-04-22T13:00:00Z',
   },
+];
+
+export const SEED_WISHLIST: Wishlist[] = [
+  { userId: 'u-you', appId: 'app-siddurplus', createdAt: '2026-03-10T09:00:00Z' },
+  { userId: 'u-you', appId: 'app-tehillim', createdAt: '2026-04-11T14:00:00Z' },
+  { userId: 'u-moshe', appId: 'app-siddurplus', createdAt: '2026-02-15T10:00:00Z' },
+  { userId: 'u-tova', appId: 'app-siddurplus', createdAt: '2026-03-01T12:00:00Z' },
+  { userId: 'u-dovid', appId: 'app-zmanimlive', createdAt: '2026-02-20T08:00:00Z' },
+  { userId: 'u-shaindy', appId: 'app-tehillim', createdAt: '2026-04-12T16:00:00Z' },
 ];

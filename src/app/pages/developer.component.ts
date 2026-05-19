@@ -1,6 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { StoreService } from '../core/store.service';
+import { AuthService } from '../core/auth.service';
+import { ToastService } from '../core/toast.service';
 import { AppCardComponent } from '../shared/app-card.component';
 import { EmptyStateComponent } from '../shared/empty-state.component';
 import { CountPipe } from '../shared/pipes';
@@ -36,6 +38,18 @@ import { CountPipe } from '../shared/pipes';
                 🔗 {{ d.website }}
               </a>
             }
+            @if (canFollow()) {
+              <div class="mt-3">
+                <button
+                  class="jt-btn text-sm py-1.5"
+                  [class.jt-btn-primary]="!store.isFollowing(d.id)"
+                  [class.jt-btn-ghost]="store.isFollowing(d.id)"
+                  (click)="onToggleFollow(d.id, d.fullName)"
+                >
+                  {{ store.isFollowing(d.id) ? '✓ Following' : '+ Follow' }}
+                </button>
+              </div>
+            }
           </div>
           <div class="sm:ml-auto flex gap-6 sm:gap-4 shrink-0">
             <div class="text-center">
@@ -65,7 +79,9 @@ import { CountPipe } from '../shared/pipes';
   `,
 })
 export class DeveloperComponent {
-  private store = inject(StoreService);
+  store = inject(StoreService);
+  private auth = inject(AuthService);
+  private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
 
   private username = signal(this.route.snapshot.paramMap.get('username') ?? '');
@@ -78,4 +94,16 @@ export class DeveloperComponent {
       : [];
   });
   downloads = computed(() => this.apps().reduce((n, a) => n + a.downloadCount, 0));
+
+  canFollow = computed(() => {
+    const viewer = this.auth.currentUser();
+    const d = this.developer();
+    return !!viewer && !!d && viewer.id !== d.id;
+  });
+
+  onToggleFollow(devId: string, name: string) {
+    const wasFollowing = this.store.isFollowing(devId);
+    this.store.toggleFollow(devId);
+    this.toast.success(wasFollowing ? `Unfollowed ${name}` : `Following ${name}`);
+  }
 }

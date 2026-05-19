@@ -1,15 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-/** Formats a number as USD; price 0 shows as "Free". */
-@Pipe({ name: 'price', standalone: true })
-export class PricePipe implements PipeTransform {
-  transform(value: number | null | undefined): string {
-    if (value == null) return '';
-    if (value === 0) return 'Free';
-    return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  }
-}
-
 /** Compact count formatting — 1234 → "1.2k". */
 @Pipe({ name: 'count', standalone: true })
 export class CountPipe implements PipeTransform {

@@ -3,13 +3,13 @@ import { RouterLink } from '@angular/router';
 import { AppItem, categoryName } from '../core/models';
 import { StoreService } from '../core/store.service';
 import { StarsComponent } from './stars.component';
-import { PricePipe, CountPipe } from './pipes';
+import { CountPipe } from './pipes';
 
 /** App tile used across Home, Browse, Library and developer pages. */
 @Component({
   selector: 'jt-app-card',
   standalone: true,
-  imports: [RouterLink, StarsComponent, PricePipe, CountPipe],
+  imports: [RouterLink, StarsComponent, CountPipe],
   template: `
     <a
       [routerLink]="['/app', app().id]"
@@ -35,10 +35,10 @@ import { PricePipe, CountPipe } from './pipes';
           <span>·</span>
           <span class="bg-brand-light text-brand px-1.5 py-0.5 rounded font-medium">{{ catName() }}</span>
         </div>
-        <div class="mt-1 flex items-center gap-2 text-xs">
-          <span class="font-display font-bold text-brand">{{ app().price | price }}</span>
-          <span class="text-muted">·</span>
-          <span class="text-muted">⬇ {{ app().downloadCount | count }}</span>
+        <div class="mt-1 flex items-center gap-2 text-xs text-muted">
+          <span>{{ app().platform }}</span>
+          <span>·</span>
+          <span>⬇ {{ app().downloadCount | count }}</span>
         </div>
       </div>
     </a>

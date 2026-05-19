@@ -2,6 +2,27 @@
 
 All notable changes to the JTech App Store prototype are documented here.
 
+## [0.4.0] — 2026-05-19
+
+A free app store, plus a wave of community features.
+
+### Changed
+
+- **Removed all pricing** — the JTech App Store is free. The `price` field, the price filter, the submit-form price input, and the `PricePipe` are all gone; cards show platform instead.
+
+### Added
+
+- **Wishlist** — save apps for later (Dexie-backed); heart toggle on the app page, a "N wishlisted" social-proof count, and a dedicated `/wishlist` page.
+- **Follow developers** — follow a developer from their app or profile page; followed-developer activity feeds the notifications bell. A "Developers I follow" list on your profile.
+- **Review replies** — developers can publicly respond to reviews on their apps.
+- **Recently viewed** — visited apps are tracked and surfaced in a home-page row.
+- **Search autocomplete & saved searches** — name suggestions as you type on Browse, plus re-applyable saved filter chips.
+- **Developer dashboard** — the profile page now shows average rating, reviews across your apps, and your follow list.
+- **Admin analytics** — summary tiles, "apps by category" and "submissions per week" bar charts, CSV export, and a Verify/Unverify developer action.
+- **Auto-moderation** — an app is automatically suspended once it collects 3 open reports, pending an admin decision.
+- **Image upload** — drag-and-drop / file-picker upload for the app icon and screenshots on the submit form.
+- **Home trust sections** — "Why JTech App Store" value props and community testimonials.
+
 ## [0.3.0] — 2026-05-19
 
 Re-themed to match the JTech Marketplace design system.

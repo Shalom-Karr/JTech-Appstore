@@ -2,16 +2,28 @@ import { Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import { DbService } from './db.service';
 import {
   AppItem,
-  AppStatus,
   Install,
   Notification,
   Platform,
   Profile,
   Report,
   Review,
+  Wishlist,
   uid,
 } from './models';
-import { SEED_APPS, SEED_INSTALLS, SEED_PROFILES, SEED_REPORTS, SEED_REVIEWS } from './seed-data';
+import {
+  SEED_APPS,
+  SEED_INSTALLS,
+  SEED_PROFILES,
+  SEED_REPORTS,
+  SEED_REVIEWS,
+  SEED_WISHLIST,
+} from './seed-data';
+
+/** An app collects this many open reports before it is auto-suspended. */
+const AUTO_SUSPEND_REPORTS = 3;
+const FOLLOWS_KEY = 'jtech-appstore-follows';
+const RECENT_KEY = 'jtech-appstore-recent';
 
 /**
  * The app-store data store.
@@ -20,6 +32,9 @@ import { SEED_APPS, SEED_INSTALLS, SEED_PROFILES, SEED_REPORTS, SEED_REVIEWS } f
  * to IndexedDB (DbService). Components read the signals and call the mutation
  * methods — they never talk to Dexie directly. On first run the database is
  * seeded with mock data; clearing browser storage re-seeds it.
+ *
+ * A few lightweight per-browser features (followed developers, recently
+ * viewed) are kept in localStorage rather than IndexedDB.
  */
 @Injectable({ providedIn: 'root' })
 export class StoreService {
@@ -32,9 +47,20 @@ export class StoreService {
   readonly reviews = signal<Review[]>([]);
   readonly installs = signal<Install[]>([]);
   readonly reports = signal<Report[]>([]);
+  readonly wishlist = signal<Wishlist[]>([]);
+  readonly followedDeveloperIds = signal<string[]>(this.loadList(FOLLOWS_KEY));
+  readonly recentlyViewedIds = signal<string[]>(this.loadList(RECENT_KEY));
 
   constructor() {
     this.init();
+  }
+
+  private loadList(key: string): string[] {
+    try {
+      return JSON.parse(localStorage.getItem(key) ?? '[]');
+    } catch {
+      return [];
+    }
   }
 
   private async init() {
@@ -52,12 +78,17 @@ export class StoreService {
           },
         );
       }
-      const [profiles, apps, reviews, installs, reports] = await Promise.all([
+      // v2 table — seeded independently so existing databases upgrade cleanly
+      if ((await this.db.wishlist.count()) === 0) {
+        await this.db.wishlist.bulkAdd(SEED_WISHLIST);
+      }
+      const [profiles, apps, reviews, installs, reports, wishlist] = await Promise.all([
         this.db.profiles.toArray(),
         this.db.apps.toArray(),
         this.db.reviews.toArray(),
         this.db.installs.toArray(),
         this.db.reports.toArray(),
+        this.db.wishlist.toArray(),
       ]);
       this.zone.run(() => {
         this.profiles.set(profiles);
@@ -65,6 +96,7 @@ export class StoreService {
         this.reviews.set(reviews);
         this.installs.set(installs);
         this.reports.set(reports);
+        this.wishlist.set(wishlist);
         this.ready.set(true);
       });
     } catch (e) {
@@ -87,6 +119,10 @@ export class StoreService {
   async updateProfile(id: string, patch: Partial<Profile>) {
     this.profiles.update((all) => all.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     await this.db.profiles.update(id, patch);
+  }
+  /** Admin action — grant or revoke the "Verified developer" badge. */
+  async setVerified(id: string, verified: boolean) {
+    await this.updateProfile(id, { verified });
   }
 
   /* ── apps: reads ──────────────────────────────────────────────────────── */
@@ -123,7 +159,6 @@ export class StoreService {
     category: string;
     platform: Platform;
     version: string;
-    price: number;
     downloadUrl: string;
     sizeMb: number;
   }): Promise<AppItem> {
@@ -158,9 +193,11 @@ export class StoreService {
     this.apps.update((all) => all.filter((a) => a.id !== id));
     this.reviews.update((all) => all.filter((r) => r.appId !== id));
     this.installs.update((all) => all.filter((i) => i.appId !== id));
+    this.wishlist.update((all) => all.filter((w) => w.appId !== id));
     await this.db.apps.delete(id);
     await this.db.reviews.where('appId').equals(id).delete();
     await this.db.installs.where('appId').equals(id).delete();
+    await this.db.wishlist.where('appId').equals(id).delete();
   }
 
   /* ── apps: admin moderation ───────────────────────────────────────────── */
@@ -233,6 +270,62 @@ export class StoreService {
     await this.db.installs.delete([userId, appId]);
   }
 
+  /* ── wishlist ─────────────────────────────────────────────────────────── */
+  isWishlisted(userId: string, appId: string): boolean {
+    return this.wishlist().some((w) => w.userId === userId && w.appId === appId);
+  }
+  /** Apps a user has saved for later. */
+  wishlistedApps(userId: string): AppItem[] {
+    const ids = new Set(
+      this.wishlist()
+        .filter((w) => w.userId === userId)
+        .map((w) => w.appId),
+    );
+    return this.apps().filter((a) => ids.has(a.id));
+  }
+  /** How many users have wishlisted an app — used for social proof. */
+  wishlistCount(appId: string): number {
+    return this.wishlist().filter((w) => w.appId === appId).length;
+  }
+  async toggleWishlist(userId: string, appId: string) {
+    if (this.isWishlisted(userId, appId)) {
+      this.wishlist.update((all) => all.filter((w) => !(w.userId === userId && w.appId === appId)));
+      await this.db.wishlist.delete([userId, appId]);
+    } else {
+      const entry: Wishlist = { userId, appId, createdAt: new Date().toISOString() };
+      this.wishlist.update((all) => [...all, entry]);
+      await this.db.wishlist.add(entry);
+    }
+  }
+
+  /* ── follow developers (localStorage) ─────────────────────────────────── */
+  isFollowing(developerId: string): boolean {
+    return this.followedDeveloperIds().includes(developerId);
+  }
+  followedDevelopers(): Profile[] {
+    const ids = new Set(this.followedDeveloperIds());
+    return this.profiles().filter((p) => ids.has(p.id));
+  }
+  toggleFollow(developerId: string) {
+    const next = this.isFollowing(developerId)
+      ? this.followedDeveloperIds().filter((id) => id !== developerId)
+      : [...this.followedDeveloperIds(), developerId];
+    this.followedDeveloperIds.set(next);
+    localStorage.setItem(FOLLOWS_KEY, JSON.stringify(next));
+  }
+
+  /* ── recently viewed (localStorage) ───────────────────────────────────── */
+  trackView(appId: string) {
+    const next = [appId, ...this.recentlyViewedIds().filter((id) => id !== appId)].slice(0, 12);
+    this.recentlyViewedIds.set(next);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  }
+  recentlyViewedApps(): AppItem[] {
+    return this.recentlyViewedIds()
+      .map((id) => this.appById(id))
+      .filter((a): a is AppItem => !!a && a.status === 'approved');
+  }
+
   /* ── reviews & ratings ────────────────────────────────────────────────── */
   reviewsForApp(appId: string): Review[] {
     return this.reviews()
@@ -250,9 +343,21 @@ export class StoreService {
     return this.reviews().some((r) => r.appId === appId && r.authorId === authorId);
   }
   async addReview(input: { appId: string; authorId: string; rating: number; content: string }) {
-    const review: Review = { id: uid('rv-'), createdAt: new Date().toISOString(), ...input };
+    const review: Review = {
+      id: uid('rv-'),
+      createdAt: new Date().toISOString(),
+      developerReply: '',
+      replyAt: '',
+      ...input,
+    };
     this.reviews.update((all) => [review, ...all]);
     await this.db.reviews.add(review);
+  }
+  /** A developer's public response to a review on their app. */
+  async replyToReview(reviewId: string, content: string) {
+    const patch = { developerReply: content, replyAt: new Date().toISOString() };
+    this.reviews.update((all) => all.map((r) => (r.id === reviewId ? { ...r, ...patch } : r)));
+    await this.db.reviews.update(reviewId, patch);
   }
   async deleteReview(id: string) {
     this.reviews.update((all) => all.filter((r) => r.id !== id));
@@ -266,6 +371,13 @@ export class StoreService {
   openReports(): Report[] {
     return this.allReports().filter((r) => !r.resolved);
   }
+  openReportsFor(appId: string): Report[] {
+    return this.openReports().filter((r) => r.appId === appId);
+  }
+  /**
+   * File a report. When an app accumulates AUTO_SUSPEND_REPORTS open reports
+   * it is automatically suspended pending an admin decision.
+   */
   async addReport(input: { appId: string; reporterId: string; reason: string; detail: string }) {
     const report: Report = {
       id: uid('rp-'),
@@ -275,6 +387,10 @@ export class StoreService {
     };
     this.reports.update((all) => [report, ...all]);
     await this.db.reports.add(report);
+    const app = this.appById(input.appId);
+    if (app && app.status === 'approved' && this.openReportsFor(input.appId).length >= AUTO_SUSPEND_REPORTS) {
+      await this.suspendApp(input.appId);
+    }
   }
   async resolveReport(id: string) {
     this.reports.update((all) => all.map((r) => (r.id === id ? { ...r, resolved: true } : r)));
@@ -284,13 +400,15 @@ export class StoreService {
   /* ── notifications (derived) ──────────────────────────────────────────── */
   /**
    * Builds the navbar notification list for a user from current state —
-   * apps that need their attention, new reviews, available updates, and
-   * (for admins) the size of the review queue.
+   * apps that need their attention, new reviews, available updates, new
+   * apps from followed developers, and (for admins) the review queue.
    */
   notificationsFor(userId: string): Notification[] {
     const out: Notification[] = [];
     const profile = this.profileById(userId);
     const myApps = this.appsByDeveloper(userId);
+    const weekAgo = Date.now() - 7 * 864e5;
+    const monthAgo = Date.now() - 30 * 864e5;
 
     for (const a of myApps) {
       if (a.status === 'rejected') {
@@ -304,11 +422,19 @@ export class StoreService {
 
     // new reviews on my apps (last 30 days, by other people)
     const myAppIds = new Set(myApps.map((a) => a.id));
-    const monthAgo = Date.now() - 30 * 864e5;
     for (const r of this.reviews()) {
       if (myAppIds.has(r.appId) && r.authorId !== userId && new Date(r.createdAt).getTime() > monthAgo) {
         const app = this.appById(r.appId);
         out.push({ icon: '⭐', text: `New ${r.rating}★ review on "${app?.name}".`, link: `/app/${r.appId}` });
+      }
+    }
+
+    // new apps from developers I follow (last 7 days)
+    for (const dev of this.followedDevelopers()) {
+      for (const a of this.appsByDeveloper(dev.id)) {
+        if (a.status === 'approved' && new Date(a.createdAt).getTime() > weekAgo) {
+          out.push({ icon: '🚀', text: `${dev.fullName} published "${a.name}".`, link: `/app/${a.id}` });
+        }
       }
     }
 
@@ -351,7 +477,12 @@ export class StoreService {
       this.db.reviews.clear(),
       this.db.installs.clear(),
       this.db.reports.clear(),
+      this.db.wishlist.clear(),
     ]);
+    localStorage.removeItem(FOLLOWS_KEY);
+    localStorage.removeItem(RECENT_KEY);
+    this.followedDeveloperIds.set([]);
+    this.recentlyViewedIds.set([]);
     this.ready.set(false);
     await this.init();
   }

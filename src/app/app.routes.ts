@@ -36,6 +36,11 @@ export const routes: Routes = [
     title: 'My library · JTech App Store',
   },
   {
+    path: 'wishlist',
+    loadComponent: () => import('./pages/wishlist.component').then((m) => m.WishlistComponent),
+    title: 'My wishlist · JTech App Store',
+  },
+  {
     path: 'profile',
     loadComponent: () => import('./pages/profile.component').then((m) => m.ProfileComponent),
     title: 'My developer profile · JTech App Store',

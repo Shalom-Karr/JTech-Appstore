@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
 import { AuthService } from '../core/auth.service';
 import { ToastService } from '../core/toast.service';
-import { AppItem, categoryName } from '../core/models';
+import { AppItem, Profile, categoryName, CATEGORIES } from '../core/models';
 import { EmptyStateComponent } from '../shared/empty-state.component';
 import { StatusBadgeComponent } from '../shared/status-badge.component';
 import { DummySwitchComponent } from '../shared/dummy-switch.component';
@@ -44,6 +44,64 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
             </div>
           }
         </div>
+
+        <!-- analytics -->
+        <section class="mb-10">
+          <h2 class="font-display text-xl font-bold mb-3">📊 Analytics</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            @for (t of analyticsTiles(); track t.label) {
+              <div class="jt-card p-4">
+                <div class="font-display text-2xl font-bold text-brand">{{ t.value }}</div>
+                <div class="text-xs text-muted mt-0.5">{{ t.label }}</div>
+              </div>
+            }
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- apps by category -->
+            <div class="jt-card p-5">
+              <h3 class="font-semibold mb-3">Apps by category</h3>
+              @if (categoryBars().length === 0) {
+                <p class="text-sm text-muted">No apps yet.</p>
+              } @else {
+                <div class="flex flex-col gap-2.5">
+                  @for (c of categoryBars(); track c.slug) {
+                    <div>
+                      <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="truncate">{{ c.icon }} {{ c.name }}</span>
+                        <span class="text-muted shrink-0 ml-2">{{ c.count }}</span>
+                      </div>
+                      <div class="h-3 rounded-full bg-surface-2 overflow-hidden">
+                        <div class="h-full rounded-full bg-brand" [style.width.%]="c.pct"></div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- submissions per week -->
+            <div class="jt-card p-5">
+              <h3 class="font-semibold mb-3">Submissions per week</h3>
+              <div class="flex items-end justify-between gap-2 h-36">
+                @for (w of weekBars(); track w.label) {
+                  <div class="flex-1 flex flex-col items-center justify-end h-full">
+                    <span class="text-xs text-muted mb-1">{{ w.count }}</span>
+                    <div
+                      class="w-full rounded-t-md bg-brand min-h-[4px]"
+                      [style.height.%]="w.pct"
+                    ></div>
+                    <span class="text-[10px] text-muted mt-1 text-center">{{ w.label }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <button class="jt-btn jt-btn-ghost text-sm" (click)="exportCsv()">⬇ Export apps (CSV)</button>
+          </div>
+        </section>
 
         <!-- review queue -->
         <section class="mb-10">
@@ -157,6 +215,38 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           </div>
         </section>
 
+        <!-- developers -->
+        <section class="mb-10">
+          <h2 class="font-display text-xl font-bold mb-3">Developers</h2>
+          <div class="flex flex-col gap-2">
+            @for (p of developers(); track p.id) {
+              <div class="jt-card p-3 flex items-center gap-3">
+                <img [src]="p.avatarUrl" [alt]="p.username" class="w-9 h-9 rounded-full object-cover border border-line shrink-0" />
+                <div class="min-w-0 flex-1">
+                  <div class="font-medium text-sm truncate">
+                    {{ p.fullName }}
+                    @if (p.verified) {
+                      <span class="text-brand" title="Verified developer">✔</span>
+                    }
+                  </div>
+                  <div class="text-xs text-muted">&commat;{{ p.username }} · {{ p.role }}</div>
+                </div>
+                <span
+                  class="text-[10px] px-2 py-0.5 rounded-full shrink-0"
+                  [class.bg-brand]="p.verified"
+                  [class.bg-surface-2]="!p.verified"
+                  [class.text-muted]="!p.verified"
+                >
+                  {{ p.verified ? 'Verified' : 'Unverified' }}
+                </span>
+                <button class="jt-btn jt-btn-ghost text-xs py-1 px-2 shrink-0" (click)="toggleVerified(p)">
+                  {{ p.verified ? 'Unverify' : 'Verify' }}
+                </button>
+              </div>
+            }
+          </div>
+        </section>
+
         <!-- feature flags -->
         <section class="mb-10">
           <h2 class="font-display text-xl font-bold mb-3">Store settings</h2>
@@ -208,6 +298,61 @@ export class AdminComponent {
       { label: 'Developers', value: this.store.profiles().length },
       { label: 'Open reports', value: this.openReports().length },
     ];
+  });
+
+  developers = computed(() =>
+    [...this.store.profiles()].sort((a, b) => a.username.localeCompare(b.username)),
+  );
+
+  analyticsTiles = computed(() => {
+    const apps = this.store.apps();
+    const published = this.store.publishedApps();
+    const ratings = published
+      .map((a) => this.store.appRating(a.id))
+      .filter((r) => r.count > 0);
+    const avgRating = ratings.length
+      ? ratings.reduce((s, r) => s + r.avg, 0) / ratings.length
+      : 0;
+    const approved = apps.filter((a) => a.status === 'approved').length;
+    const rejected = apps.filter((a) => a.status === 'rejected').length;
+    const decided = approved + rejected;
+    const approvalRate = decided ? Math.round((approved / decided) * 100) : 0;
+    return [
+      { label: 'Total downloads', value: this.store.totalDownloads().toLocaleString() },
+      { label: 'Avg rating', value: avgRating ? avgRating.toFixed(2) : '—' },
+      { label: 'Approval rate', value: decided ? approvalRate + '%' : '—' },
+      { label: 'Reviews', value: this.store.reviews().length },
+    ];
+  });
+
+  categoryBars = computed(() => {
+    const apps = this.store.apps();
+    const rows = CATEGORIES.map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      icon: c.icon,
+      count: apps.filter((a) => a.category === c.slug).length,
+    })).filter((r) => r.count > 0);
+    const max = Math.max(1, ...rows.map((r) => r.count));
+    return rows
+      .sort((a, b) => b.count - a.count)
+      .map((r) => ({ ...r, pct: (r.count / max) * 100 }));
+  });
+
+  weekBars = computed(() => {
+    const now = Date.now();
+    const buckets = [0, 0, 0, 0, 0, 0];
+    for (const a of this.store.apps()) {
+      const w = Math.floor((now - new Date(a.createdAt).getTime()) / (7 * 864e5));
+      if (w >= 0 && w < 6) buckets[w]++;
+    }
+    const labels = ['this wk', 'wk -1', 'wk -2', 'wk -3', 'wk -4', 'wk -5'];
+    const max = Math.max(1, ...buckets);
+    return buckets.map((count, i) => ({
+      label: labels[i],
+      count,
+      pct: (count / max) * 100,
+    }));
   });
 
   rejectingId = signal<string | null>(null);
@@ -262,6 +407,55 @@ export class AdminComponent {
   async resolve(id: string) {
     await this.store.resolveReport(id);
     this.toast.success('Report resolved');
+  }
+
+  async toggleVerified(p: Profile) {
+    await this.store.setVerified(p.id, !p.verified);
+    this.toast.success(
+      p.verified ? `Removed verified badge from @${p.username}` : `Verified @${p.username}`,
+    );
+  }
+
+  exportCsv() {
+    const esc = (v: string | number): string => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const headers = [
+      'name',
+      'developer',
+      'category',
+      'platform',
+      'version',
+      'status',
+      'downloads',
+      'created',
+    ];
+    const rows = this.allApps().map((a) =>
+      [
+        a.name,
+        this.devName(a),
+        this.catName(a.category),
+        a.platform,
+        a.version,
+        a.status,
+        a.downloadCount,
+        a.createdAt,
+      ]
+        .map(esc)
+        .join(','),
+    );
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jtech-appstore-apps-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.toast.success(`Exported ${rows.length} apps to CSV`);
   }
 
   async resetData() {

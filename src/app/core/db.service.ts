@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
-import { AppItem, Install, Profile, Report, Review } from './models';
+import { AppItem, Install, Profile, Report, Review, Wishlist } from './models';
 
 /**
  * Raw IndexedDB persistence layer (via Dexie).
@@ -16,6 +16,7 @@ export class DbService extends Dexie {
   reviews!: Table<Review, string>;
   installs!: Table<Install, [string, string]>;
   reports!: Table<Report, string>;
+  wishlist!: Table<Wishlist, [string, string]>;
 
   constructor() {
     super('jtech-appstore');
@@ -25,6 +26,10 @@ export class DbService extends Dexie {
       reviews: 'id, appId, authorId',
       installs: '[userId+appId], userId, appId',
       reports: 'id, appId, reporterId, resolved',
+    });
+    // v2 — wishlist
+    this.version(2).stores({
+      wishlist: '[userId+appId], userId, appId',
     });
   }
 }
