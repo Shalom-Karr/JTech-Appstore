@@ -15,7 +15,7 @@ import { CountPipe } from '../shared/pipes';
     <section class="bg-brand text-white">
       <div class="max-w-7xl mx-auto px-4 py-14 sm:py-20">
         <span
-          class="inline-block bg-gold text-[#2a1f00] text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded mb-4"
+          class="inline-block bg-gold text-white text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded mb-4"
         >
           JTech community · prototype
         </span>
@@ -28,7 +28,7 @@ import { CountPipe } from '../shared/pipes';
         </p>
 
         <form
-          class="mt-7 flex items-center bg-white rounded-xl p-1.5 max-w-lg shadow-lg"
+          class="mt-7 flex items-center bg-surface rounded-xl p-1.5 max-w-lg shadow-lg"
           (submit)="search($event)"
         >
           <span class="px-2 text-muted">🔍</span>

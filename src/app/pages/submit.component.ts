@@ -61,7 +61,7 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
               <p class="text-sm text-ink/90">{{ a.rejectionReason }}</p>
             </div>
           } @else if (a.status === 'pending') {
-            <div class="jt-card p-4 mb-5" style="background:#faf3df">
+            <div class="jt-card p-4 mb-5 bg-gold-light">
               <jt-status-badge status="pending" />
               <span class="text-sm text-gold-dark ml-2">This app is currently in the review queue.</span>
             </div>

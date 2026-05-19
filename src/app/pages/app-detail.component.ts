@@ -42,10 +42,7 @@ import { PricePipe, TimeAgoPipe } from '../shared/pipes';
         <a routerLink="/browse" class="text-sm text-brand hover:underline">← Back to browse</a>
 
         @if (a.status !== 'approved') {
-          <div
-            class="jt-card mt-3 p-3 text-sm flex items-center gap-2"
-            [style.background]="'#faf3df'"
-          >
+          <div class="jt-card mt-3 p-3 text-sm flex items-center gap-2 bg-gold-light">
             <jt-status-badge [status]="a.status" />
             <span class="text-gold-dark">
               @if (a.status === 'pending') { This app is awaiting admin review and isn't public yet. }

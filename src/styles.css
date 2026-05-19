@@ -1,29 +1,67 @@
 @import "tailwindcss";
 
-/* ── JTech App Store theme tokens ───────────────────────────────────────── */
+/* ── JTech App Store theme ───────────────────────────────────────────────
+   Light by default; a `.dark` class on <html> switches to the dark "JTech"
+   identity (near-black blue surfaces, bright cyan accent) seen on
+   jtechforums.org. Tailwind v4 utilities reference these CSS variables, so
+   overriding them under `:root.dark` re-themes the whole app at runtime.
+   NOTE: the `gold` token name is kept for stability but holds the JTech
+   indigo secondary colour. ──────────────────────────────────────────────── */
 @theme {
-  --color-ink: #1f2430;
-  --color-muted: #6b7280;
-  --color-paper: #f8f7f4;
+  --color-ink: #111827;
+  --color-muted: #5b6573;
+  --color-paper: #f5f6fa;
   --color-surface: #ffffff;
-  --color-line: #e7e4dc;
+  --color-surface-2: #eef0f6;
+  --color-line: #e3e6ee;
 
-  --color-brand: #1d3a8a;
-  --color-brand-dark: #142a63;
-  --color-brand-light: #e8edf9;
+  --color-brand: #0891b2;
+  --color-brand-dark: #0e7490;
+  --color-brand-light: #ddf2f8;
 
-  --color-gold: #d4a017;
-  --color-gold-dark: #a87d0c;
-  --color-gold-light: #faf3df;
+  --color-gold: #6366f1;
+  --color-gold-dark: #4f46e5;
+  --color-gold-light: #e9e9fd;
 
   --color-good: #15803d;
-  --color-bad: #b91c1c;
-  --color-warn: #b45309;
+  --color-bad: #dc2626;
 
   --font-display: "Frank Ruhl Libre", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 
   --radius-card: 0.9rem;
+}
+
+:root {
+  --color-on-brand: #ffffff;
+  --color-input: #ffffff;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.06);
+  color-scheme: light;
+}
+
+:root.dark {
+  --color-ink: #e7eaf3;
+  --color-muted: #97a3b8;
+  --color-paper: #070c18;
+  --color-surface: #0f1729;
+  --color-surface-2: #18223b;
+  --color-line: #243049;
+
+  --color-brand: #22d3ee;
+  --color-brand-dark: #06b6d4;
+  --color-brand-light: #0c2b36;
+
+  --color-gold: #818cf8;
+  --color-gold-dark: #6366f1;
+  --color-gold-light: #1b1f3c;
+
+  --color-good: #34d399;
+  --color-bad: #fb7185;
+
+  --color-on-brand: #04141a;
+  --color-input: #0b1322;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
 }
 
 /* ── base ───────────────────────────────────────────────────────────────── */
@@ -41,6 +79,10 @@ body {
 * {
   box-sizing: border-box;
 }
+::selection {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
 
 /* ── shared helpers ─────────────────────────────────────────────────────── */
 .font-display {
@@ -51,6 +93,7 @@ body {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .jt-btn {
@@ -66,48 +109,55 @@ body {
   border: 1px solid transparent;
   text-decoration: none;
   font-size: 0.95rem;
+  white-space: nowrap;
 }
 .jt-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 .jt-btn-primary {
   background: var(--color-brand);
-  color: #fff;
+  color: var(--color-on-brand);
 }
-.jt-btn-primary:hover {
+.jt-btn-primary:hover:not(:disabled) {
   background: var(--color-brand-dark);
+  color: #fff;
 }
 .jt-btn-gold {
   background: var(--color-gold);
-  color: #2a1f00;
-}
-.jt-btn-gold:hover {
-  background: var(--color-gold-dark);
   color: #fff;
+}
+.jt-btn-gold:hover:not(:disabled) {
+  background: var(--color-gold-dark);
 }
 .jt-btn-ghost {
   background: transparent;
   color: var(--color-brand);
   border-color: var(--color-line);
 }
-.jt-btn-ghost:hover {
-  background: var(--color-brand-light);
+.jt-btn-ghost:hover:not(:disabled) {
+  background: var(--color-surface-2);
 }
 
-.jt-input {
+.jt-input,
+select.jt-input,
+textarea.jt-input {
   width: 100%;
   border: 1px solid var(--color-line);
   border-radius: 0.6rem;
   padding: 0.6rem 0.85rem;
-  background: #fff;
+  background: var(--color-input);
   font-size: 0.95rem;
   outline: none;
   color: var(--color-ink);
+  font-family: inherit;
+}
+.jt-input::placeholder {
+  color: var(--color-muted);
 }
 .jt-input:focus {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px var(--color-brand-light);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 22%, transparent);
 }
 .jt-label {
   display: block;
@@ -130,17 +180,53 @@ body {
   border-radius: 0.4rem;
 }
 
-/* subtle dot pattern used in hero / empty states */
+/* subtle dotted texture for empty states / hero */
 .jt-mosaic {
-  background-image: radial-gradient(var(--color-brand-light) 1.4px, transparent 1.4px);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--color-brand) 14%, transparent) 1.4px,
+    transparent 1.4px
+  );
   background-size: 22px 22px;
+}
+
+/* logo image: the source wordmark is black — invert it for dark mode */
+.dark .jt-logo-invert {
+  filter: brightness(0) invert(1);
 }
 
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
+::-webkit-scrollbar-track {
+  background: var(--color-paper);
+}
 ::-webkit-scrollbar-thumb {
-  background: #d8d4c8;
+  background: color-mix(in srgb, var(--color-muted) 45%, transparent);
   border-radius: 8px;
+}
+
+/* shimmer used by loading skeletons */
+@keyframes jt-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.jt-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+.jt-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-ink) 8%, transparent),
+    transparent
+  );
+  animation: jt-shimmer 1.4s infinite;
 }

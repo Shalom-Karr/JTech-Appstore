@@ -13,13 +13,14 @@ import { PricePipe, CountPipe } from './pipes';
   template: `
     <a
       [routerLink]="['/app', app().id]"
-      class="jt-card p-4 flex gap-3 h-full hover:border-brand hover:shadow-md transition group"
+      class="jt-card p-4 flex gap-3 h-full transition hover:border-brand hover:-translate-y-0.5 group"
     >
       <img
         [src]="app().iconUrl"
         [alt]="app().name"
         loading="lazy"
-        class="w-16 h-16 rounded-2xl object-cover border border-line shrink-0 group-hover:scale-105 transition-transform"
+        (error)="onImgError($event)"
+        class="w-16 h-16 rounded-2xl object-cover border border-line shrink-0 bg-surface-2 group-hover:scale-105 transition-transform"
       />
       <div class="min-w-0 flex flex-col">
         <div class="font-semibold leading-tight truncate group-hover:text-brand">
@@ -50,4 +51,12 @@ export class AppCardComponent {
 
   catName = computed(() => categoryName(this.app().category));
   rating = computed(() => this.store.appRating(this.app().id));
+
+  /** Fall back to a neutral placeholder if the remote icon fails to load. */
+  onImgError(e: Event) {
+    const el = e.target as HTMLImageElement;
+    if (!el.src.includes('placehold')) {
+      el.src = 'https://placehold.co/256x256/eef0f6/5b6573?text=App';
+    }
+  }
 }

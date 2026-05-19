@@ -1,6 +1,16 @@
 import { Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import { DbService } from './db.service';
-import { AppItem, AppStatus, Install, Platform, Profile, Report, Review, uid } from './models';
+import {
+  AppItem,
+  AppStatus,
+  Install,
+  Notification,
+  Platform,
+  Profile,
+  Report,
+  Review,
+  uid,
+} from './models';
 import { SEED_APPS, SEED_INSTALLS, SEED_PROFILES, SEED_REPORTS, SEED_REVIEWS } from './seed-data';
 
 /**
@@ -269,6 +279,62 @@ export class StoreService {
   async resolveReport(id: string) {
     this.reports.update((all) => all.map((r) => (r.id === id ? { ...r, resolved: true } : r)));
     await this.db.reports.update(id, { resolved: true });
+  }
+
+  /* ── notifications (derived) ──────────────────────────────────────────── */
+  /**
+   * Builds the navbar notification list for a user from current state —
+   * apps that need their attention, new reviews, available updates, and
+   * (for admins) the size of the review queue.
+   */
+  notificationsFor(userId: string): Notification[] {
+    const out: Notification[] = [];
+    const profile = this.profileById(userId);
+    const myApps = this.appsByDeveloper(userId);
+
+    for (const a of myApps) {
+      if (a.status === 'rejected') {
+        out.push({ icon: '✕', text: `"${a.name}" needs changes before it can go live.`, link: `/edit/${a.id}` });
+      } else if (a.status === 'pending') {
+        out.push({ icon: '⏳', text: `"${a.name}" is waiting in the review queue.`, link: `/app/${a.id}` });
+      } else if (a.status === 'suspended') {
+        out.push({ icon: '⛔', text: `"${a.name}" was suspended by an admin.`, link: `/app/${a.id}` });
+      }
+    }
+
+    // new reviews on my apps (last 30 days, by other people)
+    const myAppIds = new Set(myApps.map((a) => a.id));
+    const monthAgo = Date.now() - 30 * 864e5;
+    for (const r of this.reviews()) {
+      if (myAppIds.has(r.appId) && r.authorId !== userId && new Date(r.createdAt).getTime() > monthAgo) {
+        const app = this.appById(r.appId);
+        out.push({ icon: '⭐', text: `New ${r.rating}★ review on "${app?.name}".`, link: `/app/${r.appId}` });
+      }
+    }
+
+    // updates available in my library
+    const updates = this.installs().filter((i) => i.userId === userId && this.hasUpdate(userId, i.appId));
+    if (updates.length) {
+      out.push({
+        icon: '🔄',
+        text: `${updates.length} app${updates.length === 1 ? '' : 's'} in your library can be updated.`,
+        link: '/library',
+      });
+    }
+
+    // admin: review queue
+    if (profile?.role === 'admin') {
+      const pending = this.pendingApps().length;
+      if (pending) {
+        out.push({ icon: '📥', text: `${pending} app${pending === 1 ? '' : 's'} awaiting review.`, link: '/admin' });
+      }
+      const reports = this.openReports().length;
+      if (reports) {
+        out.push({ icon: '⚑', text: `${reports} open report${reports === 1 ? '' : 's'} to review.`, link: '/admin' });
+      }
+    }
+
+    return out;
   }
 
   /* ── derived totals ───────────────────────────────────────────────────── */

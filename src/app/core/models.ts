@@ -89,6 +89,13 @@ export interface Report {
   createdAt: string;
 }
 
+/** A derived, actionable alert shown in the navbar notifications dropdown. */
+export interface Notification {
+  icon: string;
+  text: string;
+  link: string;
+}
+
 /* ── catalog ─────────────────────────────────────────────────────────────── */
 export interface Category {
   slug: string;

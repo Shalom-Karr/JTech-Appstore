@@ -2,6 +2,22 @@
 
 All notable changes to the JTech App Store prototype are documented here.
 
+## [0.3.0] — 2026-05-19
+
+Re-themed to match the JTech Marketplace design system.
+
+### Added
+
+- **Light / dark mode** — a `ThemeService` toggles a `.dark` class on `<html>`; the choice persists to localStorage. Toggle in the navbar (desktop and mobile).
+- **Notifications** — a navbar bell with an unread-count badge and dropdown. `store.notificationsFor()` derives actionable alerts: apps needing changes, apps in review, new reviews on your apps, available library updates, and (for admins) the review-queue and report counts.
+- **Skeleton loaders** — the initial load now shows shimmer placeholders instead of plain text.
+
+### Changed
+
+- Re-themed with the JTech identity: cyan brand accent, indigo secondary, card shadows, and surface tokens that re-point under dark mode.
+- Navbar rebuilt to match the marketplace: desktop search, theme toggle, notifications bell, account menu, and a mobile hamburger menu with an inline search bar (replaces the bottom tab bar).
+- App cards lift on hover and fall back to a placeholder when an icon fails to load.
+
 ## [0.2.0] — 2026-05-19
 
 ### Added

@@ -19,7 +19,7 @@ import { TimeAgoPipe } from '../shared/pipes';
       <p class="text-muted mb-4">Apps you've downloaded from the JTech App Store.</p>
 
       @if (updateCount() > 0) {
-        <div class="jt-card p-3 mb-4 text-sm flex items-center gap-2" style="background:#e8edf9">
+        <div class="jt-card p-3 mb-4 text-sm flex items-center gap-2 bg-brand-light">
           <span>🔄</span>
           <span class="text-brand font-medium">
             {{ updateCount() }} app{{ updateCount() === 1 ? '' : 's' }} {{ updateCount() === 1 ? 'has' : 'have' }} an update available.
@@ -63,7 +63,7 @@ import { TimeAgoPipe } from '../shared/pipes';
                 <div class="text-xs text-muted mt-0.5 flex flex-wrap items-center gap-1.5">
                   <span>added {{ installedAt(a) | timeAgo }}</span>
                   @if (hasUpdate(a)) {
-                    <span class="jt-pill" style="background:#e8edf9;color:#1d3a8a">
+                    <span class="jt-pill bg-brand-light text-brand">
                       🔄 v{{ myVersion(a) }} → v{{ a.version }}
                     </span>
                   } @else {
