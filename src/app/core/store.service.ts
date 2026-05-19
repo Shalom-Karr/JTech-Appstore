@@ -182,21 +182,37 @@ export class StoreService {
   installedAt(userId: string, appId: string): string {
     return this.installs().find((i) => i.userId === userId && i.appId === appId)?.installedAt ?? '';
   }
+  installedVersion(userId: string, appId: string): string {
+    return this.installs().find((i) => i.userId === userId && i.appId === appId)?.version ?? '';
+  }
+  /** True when the user has an older version than the one now published. */
+  hasUpdate(userId: string, appId: string): boolean {
+    const app = this.appById(appId);
+    const installed = this.installs().find((i) => i.userId === userId && i.appId === appId);
+    return !!app && !!installed && installed.version !== app.version;
+  }
 
   /**
    * Record a download: bumps the app's counter and, when a user is signed in,
-   * adds the app to their library.
+   * adds the app to their library (or refreshes it to the current version).
    */
   async download(appId: string, userId: string | null) {
     const app = this.appById(appId);
     if (!app) return;
     await this.updateApp(appId, { downloadCount: app.downloadCount + 1 });
-    if (userId && !this.isInstalled(userId, appId)) {
-      const install: Install = {
-        userId,
-        appId,
-        installedAt: new Date().toISOString(),
-      };
+    if (!userId) return;
+    const now = new Date().toISOString();
+    if (this.isInstalled(userId, appId)) {
+      this.installs.update((all) =>
+        all.map((i) =>
+          i.userId === userId && i.appId === appId
+            ? { ...i, version: app.version, installedAt: now }
+            : i,
+        ),
+      );
+      await this.db.installs.update([userId, appId], { version: app.version, installedAt: now });
+    } else {
+      const install: Install = { userId, appId, installedAt: now, version: app.version };
       this.installs.update((all) => [...all, install]);
       await this.db.installs.add(install);
     }

@@ -447,10 +447,11 @@ export const SEED_REVIEWS: Review[] = [
 ];
 
 export const SEED_INSTALLS: Install[] = [
-  { userId: 'u-you', appId: 'app-dafconnect', installedAt: '2026-03-01T08:00:00Z' },
-  { userId: 'u-you', appId: 'app-zmanimlive', installedAt: '2026-03-28T10:00:00Z' },
-  { userId: 'u-you', appId: 'app-niggunbox', installedAt: '2026-03-24T19:00:00Z' },
-  { userId: 'u-you', appId: 'app-koshercheck', installedAt: '2026-04-02T12:30:00Z' },
+  // dafconnect & koshercheck are seeded at an older version → "Update available"
+  { userId: 'u-you', appId: 'app-dafconnect', installedAt: '2026-03-01T08:00:00Z', version: '3.0.0' },
+  { userId: 'u-you', appId: 'app-zmanimlive', installedAt: '2026-03-28T10:00:00Z', version: '4.0.1' },
+  { userId: 'u-you', appId: 'app-niggunbox', installedAt: '2026-03-24T19:00:00Z', version: '1.8.2' },
+  { userId: 'u-you', appId: 'app-koshercheck', installedAt: '2026-04-02T12:30:00Z', version: '1.9.0' },
 ];
 
 export const SEED_REPORTS: Report[] = [

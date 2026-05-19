@@ -16,7 +16,17 @@ import { TimeAgoPipe } from '../shared/pipes';
   template: `
     <div class="max-w-4xl mx-auto px-4 py-8">
       <h1 class="font-display text-2xl sm:text-3xl font-bold mb-1">My library</h1>
-      <p class="text-muted mb-6">Apps you've downloaded from the JTech App Store.</p>
+      <p class="text-muted mb-4">Apps you've downloaded from the JTech App Store.</p>
+
+      @if (updateCount() > 0) {
+        <div class="jt-card p-3 mb-4 text-sm flex items-center gap-2" style="background:#e8edf9">
+          <span>🔄</span>
+          <span class="text-brand font-medium">
+            {{ updateCount() }} app{{ updateCount() === 1 ? '' : 's' }} {{ updateCount() === 1 ? 'has' : 'have' }} an update available.
+          </span>
+          <button class="jt-btn jt-btn-primary text-xs py-1 px-2 ml-auto" (click)="updateAll()">Update all</button>
+        </div>
+      }
 
       @if (!auth.isLoggedIn()) {
         <jt-empty-state
@@ -50,14 +60,24 @@ import { TimeAgoPipe } from '../shared/pipes';
                   {{ a.name }}
                 </a>
                 <div class="text-xs text-muted truncate">{{ a.tagline }}</div>
-                <div class="text-xs text-muted mt-0.5">
-                  v{{ a.version }} · added {{ installedAt(a) | timeAgo }}
+                <div class="text-xs text-muted mt-0.5 flex flex-wrap items-center gap-1.5">
+                  <span>added {{ installedAt(a) | timeAgo }}</span>
+                  @if (hasUpdate(a)) {
+                    <span class="jt-pill" style="background:#e8edf9;color:#1d3a8a">
+                      🔄 v{{ myVersion(a) }} → v{{ a.version }}
+                    </span>
+                  } @else {
+                    <span>· v{{ a.version }}</span>
+                  }
                   @if (a.status !== 'approved') {
                     · <jt-status-badge [status]="a.status" />
                   }
                 </div>
               </div>
               <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+                @if (hasUpdate(a)) {
+                  <button class="jt-btn jt-btn-gold text-sm py-1.5 px-3" (click)="update(a)">Update</button>
+                }
                 <a [href]="a.downloadUrl" target="_blank" rel="noopener" class="jt-btn jt-btn-primary text-sm py-1.5 px-3">
                   Open
                 </a>
@@ -80,9 +100,38 @@ export class LibraryComponent {
     return u ? this.store.installedApps(u.id) : [];
   });
 
+  updateCount = computed(() => {
+    const u = this.auth.currentUser();
+    if (!u) return 0;
+    return this.apps().filter((a) => this.store.hasUpdate(u.id, a.id)).length;
+  });
+
   installedAt(a: AppItem): string {
     const u = this.auth.currentUser();
     return u ? this.store.installedAt(u.id, a.id) : '';
+  }
+  myVersion(a: AppItem): string {
+    const u = this.auth.currentUser();
+    return u ? this.store.installedVersion(u.id, a.id) : '';
+  }
+  hasUpdate(a: AppItem): boolean {
+    const u = this.auth.currentUser();
+    return u ? this.store.hasUpdate(u.id, a.id) : false;
+  }
+
+  async update(a: AppItem) {
+    const u = this.auth.currentUser();
+    if (!u) return;
+    await this.store.download(a.id, u.id);
+    this.toast.success(`Updated "${a.name}" to v${a.version}`);
+  }
+
+  async updateAll() {
+    const u = this.auth.currentUser();
+    if (!u) return;
+    const toUpdate = this.apps().filter((a) => this.store.hasUpdate(u.id, a.id));
+    for (const a of toUpdate) await this.store.download(a.id, u.id);
+    this.toast.success(`Updated ${toUpdate.length} app${toUpdate.length === 1 ? '' : 's'}`);
   }
 
   async remove(a: AppItem) {

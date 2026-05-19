@@ -60,6 +60,16 @@ import { CountPipe } from '../shared/pipes';
       </div>
     </section>
 
+    <!-- today strip -->
+    <div class="bg-gold-light border-b border-line">
+      <div class="max-w-7xl mx-auto px-4 py-2.5 text-sm flex flex-wrap items-center gap-x-2 gap-y-0.5 text-gold-dark">
+        <span>🕯️</span>
+        <span class="font-semibold">Today is {{ today().hebrew }}</span>
+        <span class="text-muted">·</span>
+        <span class="text-muted">{{ today().gregorian }}</span>
+      </div>
+    </div>
+
     <div class="max-w-7xl mx-auto px-4">
       <!-- categories -->
       <section class="py-10 sm:py-12">
@@ -151,6 +161,29 @@ export class HomeComponent {
 
   categories = CATEGORIES;
   q = signal('');
+
+  /** Today's date in both the Hebrew and Gregorian calendars (Intl — no deps). */
+  today = signal(this.computeToday());
+  private computeToday() {
+    const now = new Date();
+    let hebrew = '';
+    try {
+      hebrew = new Intl.DateTimeFormat('en-u-ca-hebrew', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(now);
+    } catch {
+      hebrew = '';
+    }
+    const gregorian = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(now);
+    return { hebrew: hebrew || gregorian, gregorian };
+  }
 
   steps = [
     { icon: '🔎', title: 'Discover', text: 'Browse community apps by category, rating, and platform.' },

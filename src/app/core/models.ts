@@ -74,6 +74,8 @@ export interface Install {
   userId: string;
   appId: string;
   installedAt: string;
+  /** The app version the user has — compared against the live app to flag updates. */
+  version: string;
 }
 
 /** A flag raised on an app — feeds the admin moderation queue. */

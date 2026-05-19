@@ -2,6 +2,13 @@
 
 All notable changes to the JTech App Store prototype are documented here.
 
+## [0.2.0] — 2026-05-19
+
+### Added
+
+- **Update available** — installs now record the app version. My Library flags apps with a newer published version, shows the version delta, and offers per-app "Update" and "Update all" actions.
+- **Today strip** — the home page shows the current Hebrew date alongside the Gregorian date (via the built-in `Intl` Hebrew calendar — no dependencies).
+
 ## [0.1.0] — 2026-05-19
 
 Initial prototype release.
