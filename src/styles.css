@@ -26,8 +26,8 @@
   --color-good: #15803d;
   --color-bad: #dc2626;
 
-  --font-display: "Frank Ruhl Libre", Georgia, "Times New Roman", serif;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
 
   --radius-card: 0.9rem;
 }
@@ -189,7 +189,7 @@ textarea.jt-input {
   background-size: 22px 22px;
 }
 
-/* logo image: the source wordmark is black — invert it for dark mode */
+/* logo image: the source wordmark is black, invert it for dark mode */
 .dark .jt-logo-invert {
   filter: brightness(0) invert(1);
 }

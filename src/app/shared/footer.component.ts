@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { IconComponent } from './icon.component';
 
 /** Site footer with cross-links and a prototype disclaimer. */
 @Component({
   selector: 'jt-footer',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
   template: `
     <footer class="bg-surface border-t border-line text-muted mt-16">
       <div class="max-w-7xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -17,7 +18,7 @@ import { RouterLink } from '@angular/router';
             </span>
           </div>
           <p class="text-sm">
-            The community app store for JTech — discover, submit, and download kosher apps built by
+            The community app store for JTech. Discover, submit, and download kosher apps built by
             the community.
           </p>
         </div>
@@ -58,7 +59,9 @@ import { RouterLink } from '@angular/router';
               >Shalom Karr</a
             >
           </span>
-          <span class="text-brand">⚠️ Prototype only — no real downloads or accounts. Data lives in your browser.</span>
+          <span class="text-brand inline-flex items-center gap-1.5">
+            <jt-icon name="alert" size="1em" /> Prototype only. No real downloads or accounts. Data lives in your browser.
+          </span>
         </div>
       </div>
     </footer>

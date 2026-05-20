@@ -6,16 +6,17 @@ import { ToastService } from '../core/toast.service';
 import { AppCardComponent } from '../shared/app-card.component';
 import { EmptyStateComponent } from '../shared/empty-state.component';
 import { CountPipe } from '../shared/pipes';
+import { IconComponent } from '../shared/icon.component';
 
-/** Public developer page — their published apps and stats. */
+/** Public developer page: their published apps and stats. */
 @Component({
   selector: 'jt-developer',
   standalone: true,
-  imports: [AppCardComponent, EmptyStateComponent, CountPipe],
+  imports: [AppCardComponent, EmptyStateComponent, CountPipe, IconComponent],
   template: `
     @if (!developer()) {
       <div class="max-w-2xl mx-auto px-4 py-12">
-        <jt-empty-state icon="🤷" title="Developer not found" linkText="Browse apps" linkTo="/browse" />
+        <jt-empty-state icon="user" title="Developer not found" linkText="Browse apps" linkTo="/browse" />
       </div>
     } @else {
       @if (developer(); as d) {
@@ -26,7 +27,7 @@ import { CountPipe } from '../shared/pipes';
             <h1 class="font-display text-2xl sm:text-3xl font-bold flex items-center justify-center sm:justify-start gap-2">
               {{ d.fullName }}
               @if (d.verified) {
-                <span class="text-xs bg-brand-light text-brand px-2 py-0.5 rounded font-medium">✓ Verified</span>
+                <span class="text-xs bg-brand-light text-brand px-2 py-0.5 rounded font-medium inline-flex items-center gap-1"><jt-icon name="check" size="0.85em" /> Verified</span>
               }
             </h1>
             <div class="text-muted">&commat;{{ d.username }}</div>
@@ -34,8 +35,8 @@ import { CountPipe } from '../shared/pipes';
               <p class="mt-2 text-ink/90 max-w-xl">{{ d.bio }}</p>
             }
             @if (d.website) {
-              <a [href]="d.website" target="_blank" rel="noopener" class="text-sm text-brand hover:underline">
-                🔗 {{ d.website }}
+              <a [href]="d.website" target="_blank" rel="noopener" class="text-sm text-brand hover:underline inline-flex items-center gap-1.5">
+                <jt-icon name="link" size="0.9em" /> {{ d.website }}
               </a>
             }
             @if (canFollow()) {
@@ -46,7 +47,11 @@ import { CountPipe } from '../shared/pipes';
                   [class.jt-btn-ghost]="store.isFollowing(d.id)"
                   (click)="onToggleFollow(d.id, d.fullName)"
                 >
-                  {{ store.isFollowing(d.id) ? '✓ Following' : '+ Follow' }}
+                  @if (store.isFollowing(d.id)) {
+                    <jt-icon name="check" /> Following
+                  } @else {
+                    <jt-icon name="plus" /> Follow
+                  }
                 </button>
               </div>
             }

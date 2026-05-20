@@ -4,14 +4,16 @@ import { StoreService } from '../core/store.service';
 import { CATEGORIES } from '../core/models';
 import { AppCardComponent } from '../shared/app-card.component';
 import { CountPipe } from '../shared/pipes';
+import { IconComponent, IconName } from '../shared/icon.component';
 
-/** Landing page — hero, category grid, featured & top apps. */
+interface Tile { icon: IconName; title: string; text: string; }
+
+/** Landing page: hero, category grid, featured & top apps. */
 @Component({
   selector: 'jt-home',
   standalone: true,
-  imports: [RouterLink, AppCardComponent, CountPipe],
+  imports: [RouterLink, AppCardComponent, CountPipe, IconComponent],
   template: `
-    <!-- hero -->
     <section class="bg-brand text-white">
       <div class="max-w-7xl mx-auto px-4 py-14 sm:py-20">
         <span
@@ -24,14 +26,14 @@ import { CountPipe } from '../shared/pipes';
         </h1>
         <p class="mt-4 text-white/90 text-base sm:text-lg max-w-xl">
           Discover apps for Torah, tefilla, zmanim, chinuch and more. Every app is reviewed before
-          it reaches the store — submit your own and reach the whole community.
+          it reaches the store. Submit your own and reach the whole community.
         </p>
 
         <form
           class="mt-7 flex items-center bg-surface rounded-xl p-1.5 max-w-lg shadow-lg"
           (submit)="search($event)"
         >
-          <span class="px-2 text-muted">🔍</span>
+          <span class="px-2 text-muted"><jt-icon name="search" /></span>
           <input
             [value]="q()"
             (input)="q.set($any($event.target).value)"
@@ -48,7 +50,7 @@ import { CountPipe } from '../shared/pipes';
             routerLink="/submit"
             class="jt-btn jt-btn-ghost !bg-white/10 !text-white !border-white/30"
           >
-            + Submit your app
+            <jt-icon name="plus" /> Submit your app
           </a>
         </div>
 
@@ -60,10 +62,9 @@ import { CountPipe } from '../shared/pipes';
       </div>
     </section>
 
-    <!-- today strip -->
     <div class="bg-gold-light border-b border-line">
       <div class="max-w-7xl mx-auto px-4 py-2.5 text-sm flex flex-wrap items-center gap-x-2 gap-y-0.5 text-gold-dark">
-        <span>🕯️</span>
+        <jt-icon name="candle" size="1em" />
         <span class="font-semibold">Today is {{ today().hebrew }}</span>
         <span class="text-muted">·</span>
         <span class="text-muted">{{ today().gregorian }}</span>
@@ -71,7 +72,6 @@ import { CountPipe } from '../shared/pipes';
     </div>
 
     <div class="max-w-7xl mx-auto px-4">
-      <!-- categories -->
       <section class="py-10 sm:py-12">
         <h2 class="font-display text-2xl font-bold mb-1">Browse by category</h2>
         <p class="text-muted mb-6">Find the right app for every part of the day.</p>
@@ -82,7 +82,9 @@ import { CountPipe } from '../shared/pipes';
               [queryParams]="{ category: cat.slug }"
               class="jt-card p-4 hover:border-brand hover:shadow-md transition group"
             >
-              <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">{{ cat.icon }}</div>
+              <div class="text-brand mb-2 group-hover:scale-110 transition-transform">
+                <jt-icon [name]="cat.icon" size="2rem" />
+              </div>
               <div class="font-semibold leading-tight">{{ cat.name }}</div>
               <div class="text-xs text-muted mt-0.5">{{ cat.blurb }}</div>
             </a>
@@ -90,10 +92,9 @@ import { CountPipe } from '../shared/pipes';
         </div>
       </section>
 
-      <!-- recently viewed -->
       @if (recentApps().length) {
         <section class="pb-10">
-          <h2 class="font-display text-2xl font-bold mb-5">👀 Recently viewed</h2>
+          <h2 class="font-display text-2xl font-bold mb-5 flex items-center gap-2"><jt-icon name="eye" /> Recently viewed</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @for (app of recentApps(); track app.id) {
               <jt-app-card [app]="app" />
@@ -102,15 +103,14 @@ import { CountPipe } from '../shared/pipes';
         </section>
       }
 
-      <!-- featured -->
       @if (featured().length) {
         <section class="pb-10">
           <div class="flex items-end justify-between mb-5 gap-3">
             <div>
-              <h2 class="font-display text-2xl font-bold">⭐ Featured apps</h2>
+              <h2 class="font-display text-2xl font-bold flex items-center gap-2"><jt-icon name="sparkle" /> Featured apps</h2>
               <p class="text-muted">Hand-picked by the JTech editors.</p>
             </div>
-            <a routerLink="/browse" class="text-brand font-semibold hover:underline shrink-0">See all →</a>
+            <a routerLink="/browse" class="text-brand font-semibold hover:underline shrink-0 inline-flex items-center gap-1">See all <jt-icon name="arrow-right" size="1em" /></a>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @for (app of featured(); track app.id) {
@@ -120,9 +120,8 @@ import { CountPipe } from '../shared/pipes';
         </section>
       }
 
-      <!-- top downloaded -->
       <section class="pb-10">
-        <h2 class="font-display text-2xl font-bold mb-5">🔥 Most downloaded</h2>
+        <h2 class="font-display text-2xl font-bold mb-5 flex items-center gap-2"><jt-icon name="fire" /> Most downloaded</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (app of topApps(); track app.id) {
             <jt-app-card [app]="app" />
@@ -130,9 +129,8 @@ import { CountPipe } from '../shared/pipes';
         </div>
       </section>
 
-      <!-- new -->
       <section class="pb-12">
-        <h2 class="font-display text-2xl font-bold mb-5">🆕 New in the store</h2>
+        <h2 class="font-display text-2xl font-bold mb-5 flex items-center gap-2"><jt-icon name="rocket" /> New in the store</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (app of newApps(); track app.id) {
             <jt-app-card [app]="app" />
@@ -140,24 +138,21 @@ import { CountPipe } from '../shared/pipes';
         </div>
       </section>
 
-      <!-- developer CTA -->
       <section class="pb-16">
         <div class="jt-card bg-brand text-white p-8 text-center">
           <h2 class="font-display text-2xl font-bold">Built an app for the community?</h2>
           <p class="text-white/85 mt-2 max-w-lg mx-auto">
-            Submit it to the JTech App Store. Our reviewers check every app before it goes live —
-            free for the community.
+            Submit it to the JTech App Store. Our reviewers check every app before it goes live, free for the community.
           </p>
           <a routerLink="/submit" class="jt-btn jt-btn-gold mt-5">Submit your app</a>
         </div>
       </section>
 
-      <!-- how it works -->
       <section class="pb-16">
         <div class="jt-card p-8 grid sm:grid-cols-3 gap-6 text-center">
           @for (step of steps; track step.title) {
             <div>
-              <div class="text-3xl mb-2">{{ step.icon }}</div>
+              <div class="text-brand mb-2 flex justify-center"><jt-icon [name]="step.icon" size="2rem" /></div>
               <div class="font-semibold">{{ step.title }}</div>
               <p class="text-sm text-muted mt-1">{{ step.text }}</p>
             </div>
@@ -165,14 +160,13 @@ import { CountPipe } from '../shared/pipes';
         </div>
       </section>
 
-      <!-- why JTech App Store -->
       <section class="pb-16">
         <h2 class="font-display text-2xl font-bold mb-1">Why JTech App Store?</h2>
         <p class="text-muted mb-6">A store the community can trust.</p>
         <div class="jt-card p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           @for (prop of valueProps; track prop.title) {
             <div>
-              <div class="text-3xl mb-2">{{ prop.icon }}</div>
+              <div class="text-brand mb-2 flex"><jt-icon [name]="prop.icon" size="2rem" /></div>
               <div class="font-semibold">{{ prop.title }}</div>
               <p class="text-sm text-muted mt-1">{{ prop.text }}</p>
             </div>
@@ -180,7 +174,6 @@ import { CountPipe } from '../shared/pipes';
         </div>
       </section>
 
-      <!-- testimonials -->
       <section class="pb-16">
         <h2 class="font-display text-2xl font-bold mb-1">From the community</h2>
         <p class="text-muted mb-6">What JTech users are saying.</p>
@@ -207,7 +200,7 @@ export class HomeComponent {
   categories = CATEGORIES;
   q = signal('');
 
-  /** Today's date in both the Hebrew and Gregorian calendars (Intl — no deps). */
+  /** Today's date in both the Hebrew and Gregorian calendars (Intl, no deps). */
   today = signal(this.computeToday());
   private computeToday() {
     const now = new Date();
@@ -230,38 +223,22 @@ export class HomeComponent {
     return { hebrew: hebrew || gregorian, gregorian };
   }
 
-  steps = [
-    { icon: '🔎', title: 'Discover', text: 'Browse community apps by category, rating, and platform.' },
-    { icon: '🛡️', title: 'Reviewed', text: 'Every app is checked by a JTech admin before it is published.' },
-    { icon: '⬇️', title: 'Download', text: 'Add apps to your library and download them in one tap.' },
+  steps: Tile[] = [
+    { icon: 'compass', title: 'Discover', text: 'Browse community apps by category and platform.' },
+    { icon: 'shield-check', title: 'Reviewed', text: 'Every app is checked by a JTech admin before it is published.' },
+    { icon: 'download', title: 'Download', text: 'Add apps to your library and download them in one tap.' },
   ];
 
-  valueProps = [
-    {
-      icon: '🛡️',
-      title: 'Every app reviewed',
-      text: 'A JTech admin checks every submission before it goes live.',
-    },
-    {
-      icon: '🤝',
-      title: 'Built by the community',
-      text: 'Apps by and for the frum, kosher-tech community.',
-    },
-    {
-      icon: '🆓',
-      title: 'Always free',
-      text: 'No price tags, no paywalls — free to download and to publish.',
-    },
-    {
-      icon: '🔒',
-      title: 'Safe & kosher',
-      text: 'No inappropriate content and no deceptive ads.',
-    },
+  valueProps: Tile[] = [
+    { icon: 'shield-check', title: 'Every app reviewed', text: 'A JTech admin checks every submission before it goes live.' },
+    { icon: 'handshake', title: 'Built by the community', text: 'Apps by and for the frum, kosher-tech community.' },
+    { icon: 'gift', title: 'Always free', text: 'No price tags, no paywalls. Free to download and to publish.' },
+    { icon: 'lock', title: 'Safe & kosher', text: 'No inappropriate content and no deceptive ads.' },
   ];
 
   testimonials = [
     {
-      quote: 'Finally a place to find apps I can hand my kids without worrying. The reviews give me real peace of mind.',
+      quote: 'Finally a place to find apps I can hand my kids without worrying.',
       name: 'Yossi K.',
       role: 'Lakewood, NJ',
     },

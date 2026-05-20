@@ -8,8 +8,9 @@ import { EmptyStateComponent } from '../shared/empty-state.component';
 import { StatusBadgeComponent } from '../shared/status-badge.component';
 import { DummySwitchComponent } from '../shared/dummy-switch.component';
 import { TimeAgoPipe, CountPipe } from '../shared/pipes';
+import { IconComponent } from '../shared/icon.component';
 
-/** Admin review queue — approve / reject / suspend apps and handle reports. */
+/** Admin review queue: approve / reject / suspend apps and handle reports. */
 @Component({
   selector: 'jt-admin',
   standalone: true,
@@ -20,12 +21,13 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
     DummySwitchComponent,
     TimeAgoPipe,
     CountPipe,
+    IconComponent,
   ],
   template: `
     <div class="max-w-5xl mx-auto px-4 py-8">
       @if (!auth.isAdmin()) {
         <jt-empty-state
-          icon="🛡️"
+          icon="shield"
           title="Admins only"
           message="Log in as the admin account (username: jtech_admin) from the login page."
           linkText="Go to login"
@@ -35,7 +37,6 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
         <h1 class="font-display text-2xl sm:text-3xl font-bold mb-1">Admin review</h1>
         <p class="text-muted mb-6">Approve submissions, moderate published apps, and clear reports.</p>
 
-        <!-- stats -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
           @for (s of stats(); track s.label) {
             <div class="jt-card p-4">
@@ -45,10 +46,9 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           }
         </div>
 
-        <!-- analytics -->
         <section class="mb-10">
-          <h2 class="font-display text-xl font-bold mb-3">📊 Analytics</h2>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <h2 class="font-display text-xl font-bold mb-3 flex items-center gap-2"><jt-icon name="chart" /> Analytics</h2>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
             @for (t of analyticsTiles(); track t.label) {
               <div class="jt-card p-4">
                 <div class="font-display text-2xl font-bold text-brand">{{ t.value }}</div>
@@ -58,7 +58,6 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           </div>
 
           <div class="grid md:grid-cols-2 gap-4">
-            <!-- apps by category -->
             <div class="jt-card p-5">
               <h3 class="font-semibold mb-3">Apps by category</h3>
               @if (categoryBars().length === 0) {
@@ -68,7 +67,7 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
                   @for (c of categoryBars(); track c.slug) {
                     <div>
                       <div class="flex items-center justify-between text-xs mb-1">
-                        <span class="truncate">{{ c.icon }} {{ c.name }}</span>
+                        <span class="truncate inline-flex items-center gap-1.5"><jt-icon [name]="c.icon" size="0.9em" /> {{ c.name }}</span>
                         <span class="text-muted shrink-0 ml-2">{{ c.count }}</span>
                       </div>
                       <div class="h-3 rounded-full bg-surface-2 overflow-hidden">
@@ -80,7 +79,6 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
               }
             </div>
 
-            <!-- submissions per week -->
             <div class="jt-card p-5">
               <h3 class="font-semibold mb-3">Submissions per week</h3>
               <div class="flex items-end justify-between gap-2 h-36">
@@ -99,20 +97,19 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           </div>
 
           <div class="mt-4">
-            <button class="jt-btn jt-btn-ghost text-sm" (click)="exportCsv()">⬇ Export apps (CSV)</button>
+            <button class="jt-btn jt-btn-ghost text-sm" (click)="exportCsv()"><jt-icon name="download" /> Export apps (CSV)</button>
           </div>
         </section>
 
-        <!-- review queue -->
         <section class="mb-10">
-          <h2 class="font-display text-xl font-bold mb-3">
-            ⏳ Review queue
+          <h2 class="font-display text-xl font-bold mb-3 flex items-center gap-2">
+            <jt-icon name="clock" /> Review queue
             @if (pending().length) {
               <span class="text-bad">({{ pending().length }})</span>
             }
           </h2>
           @if (pending().length === 0) {
-            <div class="jt-card p-6 text-center text-muted">🎉 The review queue is empty — nothing waiting.</div>
+            <div class="jt-card p-6 text-center text-muted">The review queue is empty.</div>
           } @else {
             <div class="flex flex-col gap-3">
               @for (a of pending(); track a.id) {
@@ -129,8 +126,8 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
                     </div>
                   </div>
                   <div class="flex flex-wrap gap-2 mt-3">
-                    <button class="jt-btn jt-btn-primary text-sm py-1.5" (click)="approve(a)">✓ Approve</button>
-                    <button class="jt-btn jt-btn-ghost text-sm py-1.5 !text-bad" (click)="startReject(a)">✕ Reject</button>
+                    <button class="jt-btn jt-btn-primary text-sm py-1.5" (click)="approve(a)"><jt-icon name="check" /> Approve</button>
+                    <button class="jt-btn jt-btn-ghost text-sm py-1.5 !text-bad" (click)="startReject(a)"><jt-icon name="close" /> Reject</button>
                     <a [routerLink]="['/app', a.id]" class="jt-btn jt-btn-ghost text-sm py-1.5">Preview</a>
                   </div>
                   @if (rejectingId() === a.id) {
@@ -154,10 +151,9 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           }
         </section>
 
-        <!-- reports -->
         <section class="mb-10">
-          <h2 class="font-display text-xl font-bold mb-3">
-            ⚑ Open reports
+          <h2 class="font-display text-xl font-bold mb-3 flex items-center gap-2">
+            <jt-icon name="flag" /> Open reports
             @if (openReports().length) {
               <span class="text-bad">({{ openReports().length }})</span>
             }
@@ -187,7 +183,6 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           }
         </section>
 
-        <!-- all apps -->
         <section class="mb-10">
           <h2 class="font-display text-xl font-bold mb-3">All apps</h2>
           <div class="flex flex-col gap-2">
@@ -196,13 +191,17 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
                 <img [src]="a.iconUrl" [alt]="a.name" class="w-10 h-10 rounded-xl object-cover border border-line shrink-0" />
                 <div class="min-w-0 flex-1">
                   <a [routerLink]="['/app', a.id]" class="font-medium text-sm hover:text-brand truncate block">{{ a.name }}</a>
-                  <div class="text-xs text-muted">⬇ {{ a.downloadCount | count }} · {{ catName(a.category) }}</div>
+                  <div class="text-xs text-muted inline-flex items-center gap-1"><jt-icon name="download" size="0.85em" /> {{ a.downloadCount | count }} · {{ catName(a.category) }}</div>
                 </div>
                 <jt-status-badge [status]="a.status" />
                 <div class="flex gap-1.5 shrink-0">
                   @if (a.status === 'approved') {
                     <button class="jt-btn jt-btn-ghost text-xs py-1 px-2" (click)="toggleFeatured(a)">
-                      {{ a.featured ? '★ Unfeature' : '☆ Feature' }}
+                      @if (a.featured) {
+                        <jt-icon name="star-filled" size="0.9em" /> Unfeature
+                      } @else {
+                        <jt-icon name="star" size="0.9em" /> Feature
+                      }
                     </button>
                     <button class="jt-btn jt-btn-ghost text-xs py-1 px-2 !text-bad" (click)="suspend(a)">Suspend</button>
                   } @else if (a.status === 'suspended' || a.status === 'rejected') {
@@ -215,7 +214,6 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           </div>
         </section>
 
-        <!-- developers -->
         <section class="mb-10">
           <h2 class="font-display text-xl font-bold mb-3">Developers</h2>
           <div class="flex flex-col gap-2">
@@ -226,7 +224,7 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
                   <div class="font-medium text-sm truncate">
                     {{ p.fullName }}
                     @if (p.verified) {
-                      <span class="text-brand" title="Verified developer">✔</span>
+                      <span class="text-brand inline-flex" title="Verified developer"><jt-icon name="check" size="0.9em" /></span>
                     }
                   </div>
                   <div class="text-xs text-muted">&commat;{{ p.username }} · {{ p.role }}</div>
@@ -247,7 +245,6 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           </div>
         </section>
 
-        <!-- feature flags -->
         <section class="mb-10">
           <h2 class="font-display text-xl font-bold mb-3">Store settings</h2>
           <div class="jt-card p-5">
@@ -259,14 +256,13 @@ import { TimeAgoPipe, CountPipe } from '../shared/pipes';
           </div>
         </section>
 
-        <!-- danger zone -->
         <section>
           <h2 class="font-display text-xl font-bold mb-3">Danger zone</h2>
           <div class="jt-card border-bad p-5">
             <h3 class="font-semibold">Reset demo data</h3>
             <p class="text-sm text-muted mt-1">
-              Wipes the in-browser database and reseeds it with the original mock apps, developers,
-              and reviews. Any changes made this session will be lost.
+              Wipes the in-browser database and reseeds it with the original mock apps and developers.
+              Any changes made this session will be lost.
             </p>
             <button class="jt-btn text-bad border-bad mt-4" (click)="resetData()">Reset demo data</button>
           </div>
@@ -306,22 +302,14 @@ export class AdminComponent {
 
   analyticsTiles = computed(() => {
     const apps = this.store.apps();
-    const published = this.store.publishedApps();
-    const ratings = published
-      .map((a) => this.store.appRating(a.id))
-      .filter((r) => r.count > 0);
-    const avgRating = ratings.length
-      ? ratings.reduce((s, r) => s + r.avg, 0) / ratings.length
-      : 0;
     const approved = apps.filter((a) => a.status === 'approved').length;
     const rejected = apps.filter((a) => a.status === 'rejected').length;
     const decided = approved + rejected;
     const approvalRate = decided ? Math.round((approved / decided) * 100) : 0;
     return [
       { label: 'Total downloads', value: this.store.totalDownloads().toLocaleString() },
-      { label: 'Avg rating', value: avgRating ? avgRating.toFixed(2) : '—' },
-      { label: 'Approval rate', value: decided ? approvalRate + '%' : '—' },
-      { label: 'Reviews', value: this.store.reviews().length },
+      { label: 'Approval rate', value: decided ? approvalRate + '%' : '0%' },
+      { label: 'Featured apps', value: apps.filter((a) => a.featured).length },
     ];
   });
 
@@ -369,7 +357,7 @@ export class AdminComponent {
 
   async approve(a: AppItem) {
     await this.store.approveApp(a.id);
-    this.toast.success(`Approved "${a.name}" — it's now live in the store.`);
+    this.toast.success(`Approved "${a.name}". It's now live in the store.`);
   }
 
   startReject(a: AppItem) {

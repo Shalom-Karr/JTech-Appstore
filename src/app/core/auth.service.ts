@@ -7,7 +7,7 @@ const SESSION_KEY = 'jtech-appstore-session';
 /**
  * Dummy authentication.
  *
- * There is no real auth — "log in" simply selects a profile and "sign up"
+ * There is no real auth: "log in" simply selects a profile and "sign up"
  * creates one. The active user id is kept in localStorage so the session
  * survives a refresh. No passwords are ever checked.
  */
@@ -26,7 +26,7 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this.currentUser() !== null);
   readonly isAdmin = computed(() => this.currentUser()?.role === 'admin');
 
-  /** Dummy login — matches by username or email, password ignored. */
+  /** Dummy login: matches by username or email, password ignored. */
   login(identifier: string): Profile | null {
     const id = identifier.trim().toLowerCase();
     const profile =
@@ -42,7 +42,7 @@ export class AuthService {
     return this.login('you');
   }
 
-  /** Dummy signup — creates a new profile, no validation beyond uniqueness. */
+  /** Dummy signup: creates a new profile, no validation beyond uniqueness. */
   async signup(input: {
     username: string;
     fullName: string;

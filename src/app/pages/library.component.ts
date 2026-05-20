@@ -7,12 +7,13 @@ import { AppItem } from '../core/models';
 import { EmptyStateComponent } from '../shared/empty-state.component';
 import { StatusBadgeComponent } from '../shared/status-badge.component';
 import { TimeAgoPipe } from '../shared/pipes';
+import { IconComponent } from '../shared/icon.component';
 
 /** The signed-in user's downloaded apps. */
 @Component({
   selector: 'jt-library',
   standalone: true,
-  imports: [RouterLink, EmptyStateComponent, StatusBadgeComponent, TimeAgoPipe],
+  imports: [RouterLink, EmptyStateComponent, StatusBadgeComponent, TimeAgoPipe, IconComponent],
   template: `
     <div class="max-w-4xl mx-auto px-4 py-8">
       <h1 class="font-display text-2xl sm:text-3xl font-bold mb-1">My library</h1>
@@ -20,7 +21,7 @@ import { TimeAgoPipe } from '../shared/pipes';
 
       @if (updateCount() > 0) {
         <div class="jt-card p-3 mb-4 text-sm flex items-center gap-2 bg-brand-light">
-          <span>🔄</span>
+          <jt-icon name="refresh" />
           <span class="text-brand font-medium">
             {{ updateCount() }} app{{ updateCount() === 1 ? '' : 's' }} {{ updateCount() === 1 ? 'has' : 'have' }} an update available.
           </span>
@@ -30,7 +31,7 @@ import { TimeAgoPipe } from '../shared/pipes';
 
       @if (!auth.isLoggedIn()) {
         <jt-empty-state
-          icon="🔒"
+          icon="lock"
           title="Log in to see your library"
           message="Your downloaded apps are saved to your account."
           linkText="Log in"
@@ -38,7 +39,7 @@ import { TimeAgoPipe } from '../shared/pipes';
         />
       } @else if (apps().length === 0) {
         <jt-empty-state
-          icon="📚"
+          icon="library"
           title="Your library is empty"
           message="Browse the store and download an app to add it here."
           linkText="Browse apps"
@@ -63,8 +64,8 @@ import { TimeAgoPipe } from '../shared/pipes';
                 <div class="text-xs text-muted mt-0.5 flex flex-wrap items-center gap-1.5">
                   <span>added {{ installedAt(a) | timeAgo }}</span>
                   @if (hasUpdate(a)) {
-                    <span class="jt-pill bg-brand-light text-brand">
-                      🔄 v{{ myVersion(a) }} → v{{ a.version }}
+                    <span class="jt-pill bg-brand-light text-brand inline-flex items-center gap-1">
+                      <jt-icon name="refresh" size="0.85em" /> v{{ myVersion(a) }} to v{{ a.version }}
                     </span>
                   } @else {
                     <span>· v{{ a.version }}</span>

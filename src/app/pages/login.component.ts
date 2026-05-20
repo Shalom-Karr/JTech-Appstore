@@ -4,22 +4,23 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../core/auth.service';
 import { StoreService } from '../core/store.service';
 import { ToastService } from '../core/toast.service';
+import { IconComponent } from '../shared/icon.component';
 
-/** Dummy login — pick a seed account or use the instant demo login. */
+/** Dummy login: pick a seed account or use the instant demo login. */
 @Component({
   selector: 'jt-login',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, IconComponent],
   template: `
     <div class="max-w-md mx-auto px-4 py-10 sm:py-14">
       <div class="jt-card p-6 sm:p-8">
         <h1 class="font-display text-2xl font-bold text-center">Log in</h1>
         <p class="text-muted text-sm text-center mt-1">
-          Prototype login — no password needed.
+          Prototype login. No password needed.
         </p>
 
         <button class="jt-btn jt-btn-gold w-full mt-5" (click)="demoLogin()">
-          ✨ Instant demo login
+          <jt-icon name="sparkle" /> Instant demo login
         </button>
 
         <div class="flex items-center gap-3 my-5 text-xs text-muted">
@@ -48,7 +49,7 @@ import { ToastService } from '../core/toast.service';
 
       <div class="jt-card p-4 mt-4 text-sm">
         <div class="font-semibold mb-1">Demo accounts</div>
-        <p class="text-muted text-xs mb-2">Click a username to log in as them — no password.</p>
+        <p class="text-muted text-xs mb-2">Click a username to log in as them. No password.</p>
         <div class="flex flex-wrap gap-2">
           @for (p of accounts(); track p.id) {
             <button

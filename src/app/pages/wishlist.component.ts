@@ -16,7 +16,7 @@ import { EmptyStateComponent } from '../shared/empty-state.component';
 
       @if (!auth.currentUser()) {
         <jt-empty-state
-          icon="🔒"
+          icon="lock"
           title="Log in to see your wishlist"
           message="Your saved apps are kept with your account."
           linkText="Log in"
@@ -24,7 +24,7 @@ import { EmptyStateComponent } from '../shared/empty-state.component';
         />
       } @else if (apps().length === 0) {
         <jt-empty-state
-          icon="♥"
+          icon="heart"
           title="Your wishlist is empty"
           message="Browse the store and tap the heart on any app to save it here."
           linkText="Browse apps"

@@ -2,14 +2,14 @@ import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AppItem, categoryName } from '../core/models';
 import { StoreService } from '../core/store.service';
-import { StarsComponent } from './stars.component';
 import { CountPipe } from './pipes';
+import { IconComponent } from './icon.component';
 
 /** App tile used across Home, Browse, Library and developer pages. */
 @Component({
   selector: 'jt-app-card',
   standalone: true,
-  imports: [RouterLink, StarsComponent, CountPipe],
+  imports: [RouterLink, CountPipe, IconComponent],
   template: `
     <a
       [routerLink]="['/app', app().id]"
@@ -28,17 +28,11 @@ import { CountPipe } from './pipes';
         </div>
         <div class="text-xs text-muted line-clamp-2 mt-0.5">{{ app().tagline }}</div>
         <div class="mt-auto pt-2 flex items-center gap-1.5 text-xs text-muted flex-wrap">
-          <jt-stars [value]="rating().avg" size="0.8rem" />
-          @if (rating().count) {
-            <span>{{ rating().avg }}</span>
-          }
-          <span>·</span>
           <span class="bg-brand-light text-brand px-1.5 py-0.5 rounded font-medium">{{ catName() }}</span>
-        </div>
-        <div class="mt-1 flex items-center gap-2 text-xs text-muted">
+          <span>·</span>
           <span>{{ app().platform }}</span>
           <span>·</span>
-          <span>⬇ {{ app().downloadCount | count }}</span>
+          <span class="inline-flex items-center gap-1"><jt-icon name="download" size="0.85em" /> {{ app().downloadCount | count }}</span>
         </div>
       </div>
     </a>
@@ -50,9 +44,7 @@ export class AppCardComponent {
   private store = inject(StoreService);
 
   catName = computed(() => categoryName(this.app().category));
-  rating = computed(() => this.store.appRating(this.app().id));
 
-  /** Fall back to a neutral placeholder if the remote icon fails to load. */
   onImgError(e: Event) {
     const el = e.target as HTMLImageElement;
     if (!el.src.includes('placehold')) {

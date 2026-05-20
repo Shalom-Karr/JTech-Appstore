@@ -7,7 +7,6 @@ import {
   Platform,
   Profile,
   Report,
-  Review,
   Wishlist,
   uid,
 } from './models';
@@ -16,7 +15,6 @@ import {
   SEED_INSTALLS,
   SEED_PROFILES,
   SEED_REPORTS,
-  SEED_REVIEWS,
   SEED_WISHLIST,
 } from './seed-data';
 
@@ -25,17 +23,6 @@ const AUTO_SUSPEND_REPORTS = 3;
 const FOLLOWS_KEY = 'jtech-appstore-follows';
 const RECENT_KEY = 'jtech-appstore-recent';
 
-/**
- * The app-store data store.
- *
- * Keeps an in-memory signal mirror of every table and writes changes through
- * to IndexedDB (DbService). Components read the signals and call the mutation
- * methods — they never talk to Dexie directly. On first run the database is
- * seeded with mock data; clearing browser storage re-seeds it.
- *
- * A few lightweight per-browser features (followed developers, recently
- * viewed) are kept in localStorage rather than IndexedDB.
- */
 @Injectable({ providedIn: 'root' })
 export class StoreService {
   private db = inject(DbService);
@@ -44,7 +31,6 @@ export class StoreService {
   readonly ready = signal(false);
   readonly profiles = signal<Profile[]>([]);
   readonly apps = signal<AppItem[]>([]);
-  readonly reviews = signal<Review[]>([]);
   readonly installs = signal<Install[]>([]);
   readonly reports = signal<Report[]>([]);
   readonly wishlist = signal<Wishlist[]>([]);
@@ -68,24 +54,21 @@ export class StoreService {
       if ((await this.db.apps.count()) === 0) {
         await this.db.transaction(
           'rw',
-          [this.db.profiles, this.db.apps, this.db.reviews, this.db.installs, this.db.reports],
+          [this.db.profiles, this.db.apps, this.db.installs, this.db.reports],
           async () => {
             await this.db.profiles.bulkAdd(SEED_PROFILES);
             await this.db.apps.bulkAdd(SEED_APPS);
-            await this.db.reviews.bulkAdd(SEED_REVIEWS);
             await this.db.installs.bulkAdd(SEED_INSTALLS);
             await this.db.reports.bulkAdd(SEED_REPORTS);
           },
         );
       }
-      // v2 table — seeded independently so existing databases upgrade cleanly
       if ((await this.db.wishlist.count()) === 0) {
         await this.db.wishlist.bulkAdd(SEED_WISHLIST);
       }
-      const [profiles, apps, reviews, installs, reports, wishlist] = await Promise.all([
+      const [profiles, apps, installs, reports, wishlist] = await Promise.all([
         this.db.profiles.toArray(),
         this.db.apps.toArray(),
-        this.db.reviews.toArray(),
         this.db.installs.toArray(),
         this.db.reports.toArray(),
         this.db.wishlist.toArray(),
@@ -93,7 +76,6 @@ export class StoreService {
       this.zone.run(() => {
         this.profiles.set(profiles);
         this.apps.set(apps);
-        this.reviews.set(reviews);
         this.installs.set(installs);
         this.reports.set(reports);
         this.wishlist.set(wishlist);
@@ -105,7 +87,7 @@ export class StoreService {
     }
   }
 
-  /* ── profiles ─────────────────────────────────────────────────────────── */
+  /* profiles */
   profileById(id: string | null | undefined): Profile | undefined {
     return this.profiles().find((p) => p.id === id);
   }
@@ -120,12 +102,11 @@ export class StoreService {
     this.profiles.update((all) => all.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     await this.db.profiles.update(id, patch);
   }
-  /** Admin action — grant or revoke the "Verified developer" badge. */
   async setVerified(id: string, verified: boolean) {
     await this.updateProfile(id, { verified });
   }
 
-  /* ── apps: reads ──────────────────────────────────────────────────────── */
+  /* apps: reads */
   appById(id: string): AppItem | undefined {
     return this.apps().find((a) => a.id === id);
   }
@@ -134,11 +115,9 @@ export class StoreService {
       .filter((a) => a.developerId === developerId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
-  /** Apps shoppers can see and download — approved only. */
   publishedApps(): AppItem[] {
     return this.apps().filter((a) => a.status === 'approved');
   }
-  /** Submissions still waiting for an admin decision. */
   pendingApps(): AppItem[] {
     return this.apps()
       .filter((a) => a.status === 'pending')
@@ -148,7 +127,7 @@ export class StoreService {
     return this.publishedApps().filter((a) => a.featured);
   }
 
-  /* ── apps: developer mutations ────────────────────────────────────────── */
+  /* apps: developer mutations */
   async submitApp(input: {
     developerId: string;
     name: string;
@@ -160,6 +139,7 @@ export class StoreService {
     platform: Platform;
     version: string;
     downloadUrl: string;
+    forumPostUrl: string;
     sizeMb: number;
   }): Promise<AppItem> {
     const now = new Date().toISOString();
@@ -184,23 +164,20 @@ export class StoreService {
     await this.db.apps.update(id, full);
   }
 
-  /** Editing an app's content re-submits it for review. */
   async resubmitApp(id: string, patch: Partial<AppItem>) {
     await this.updateApp(id, { ...patch, status: 'pending', rejectionReason: '' });
   }
 
   async deleteApp(id: string) {
     this.apps.update((all) => all.filter((a) => a.id !== id));
-    this.reviews.update((all) => all.filter((r) => r.appId !== id));
     this.installs.update((all) => all.filter((i) => i.appId !== id));
     this.wishlist.update((all) => all.filter((w) => w.appId !== id));
     await this.db.apps.delete(id);
-    await this.db.reviews.where('appId').equals(id).delete();
     await this.db.installs.where('appId').equals(id).delete();
     await this.db.wishlist.where('appId').equals(id).delete();
   }
 
-  /* ── apps: admin moderation ───────────────────────────────────────────── */
+  /* apps: admin moderation */
   async approveApp(id: string) {
     await this.updateApp(id, { status: 'approved', rejectionReason: '' });
   }
@@ -214,7 +191,7 @@ export class StoreService {
     await this.updateApp(id, { featured });
   }
 
-  /* ── downloads / library ──────────────────────────────────────────────── */
+  /* downloads / library */
   isInstalled(userId: string, appId: string): boolean {
     return this.installs().some((i) => i.userId === userId && i.appId === appId);
   }
@@ -232,17 +209,12 @@ export class StoreService {
   installedVersion(userId: string, appId: string): string {
     return this.installs().find((i) => i.userId === userId && i.appId === appId)?.version ?? '';
   }
-  /** True when the user has an older version than the one now published. */
   hasUpdate(userId: string, appId: string): boolean {
     const app = this.appById(appId);
     const installed = this.installs().find((i) => i.userId === userId && i.appId === appId);
     return !!app && !!installed && installed.version !== app.version;
   }
 
-  /**
-   * Record a download: bumps the app's counter and, when a user is signed in,
-   * adds the app to their library (or refreshes it to the current version).
-   */
   async download(appId: string, userId: string | null) {
     const app = this.appById(appId);
     if (!app) return;
@@ -270,11 +242,10 @@ export class StoreService {
     await this.db.installs.delete([userId, appId]);
   }
 
-  /* ── wishlist ─────────────────────────────────────────────────────────── */
+  /* wishlist */
   isWishlisted(userId: string, appId: string): boolean {
     return this.wishlist().some((w) => w.userId === userId && w.appId === appId);
   }
-  /** Apps a user has saved for later. */
   wishlistedApps(userId: string): AppItem[] {
     const ids = new Set(
       this.wishlist()
@@ -283,7 +254,6 @@ export class StoreService {
     );
     return this.apps().filter((a) => ids.has(a.id));
   }
-  /** How many users have wishlisted an app — used for social proof. */
   wishlistCount(appId: string): number {
     return this.wishlist().filter((w) => w.appId === appId).length;
   }
@@ -298,7 +268,7 @@ export class StoreService {
     }
   }
 
-  /* ── follow developers (localStorage) ─────────────────────────────────── */
+  /* follow developers (localStorage) */
   isFollowing(developerId: string): boolean {
     return this.followedDeveloperIds().includes(developerId);
   }
@@ -314,7 +284,7 @@ export class StoreService {
     localStorage.setItem(FOLLOWS_KEY, JSON.stringify(next));
   }
 
-  /* ── recently viewed (localStorage) ───────────────────────────────────── */
+  /* recently viewed (localStorage) */
   trackView(appId: string) {
     const next = [appId, ...this.recentlyViewedIds().filter((id) => id !== appId)].slice(0, 12);
     this.recentlyViewedIds.set(next);
@@ -326,45 +296,7 @@ export class StoreService {
       .filter((a): a is AppItem => !!a && a.status === 'approved');
   }
 
-  /* ── reviews & ratings ────────────────────────────────────────────────── */
-  reviewsForApp(appId: string): Review[] {
-    return this.reviews()
-      .filter((r) => r.appId === appId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-  /** Average star rating and review count for an app. */
-  appRating(appId: string): { avg: number; count: number } {
-    const rs = this.reviews().filter((r) => r.appId === appId);
-    if (!rs.length) return { avg: 0, count: 0 };
-    const avg = rs.reduce((s, r) => s + r.rating, 0) / rs.length;
-    return { avg: Math.round(avg * 10) / 10, count: rs.length };
-  }
-  hasReviewed(appId: string, authorId: string): boolean {
-    return this.reviews().some((r) => r.appId === appId && r.authorId === authorId);
-  }
-  async addReview(input: { appId: string; authorId: string; rating: number; content: string }) {
-    const review: Review = {
-      id: uid('rv-'),
-      createdAt: new Date().toISOString(),
-      developerReply: '',
-      replyAt: '',
-      ...input,
-    };
-    this.reviews.update((all) => [review, ...all]);
-    await this.db.reviews.add(review);
-  }
-  /** A developer's public response to a review on their app. */
-  async replyToReview(reviewId: string, content: string) {
-    const patch = { developerReply: content, replyAt: new Date().toISOString() };
-    this.reviews.update((all) => all.map((r) => (r.id === reviewId ? { ...r, ...patch } : r)));
-    await this.db.reviews.update(reviewId, patch);
-  }
-  async deleteReview(id: string) {
-    this.reviews.update((all) => all.filter((r) => r.id !== id));
-    await this.db.reviews.delete(id);
-  }
-
-  /* ── reports (moderation) ─────────────────────────────────────────────── */
+  /* reports (moderation) */
   allReports(): Report[] {
     return [...this.reports()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
@@ -374,10 +306,6 @@ export class StoreService {
   openReportsFor(appId: string): Report[] {
     return this.openReports().filter((r) => r.appId === appId);
   }
-  /**
-   * File a report. When an app accumulates AUTO_SUSPEND_REPORTS open reports
-   * it is automatically suspended pending an admin decision.
-   */
   async addReport(input: { appId: string; reporterId: string; reason: string; detail: string }) {
     const report: Report = {
       id: uid('rp-'),
@@ -397,84 +325,64 @@ export class StoreService {
     await this.db.reports.update(id, { resolved: true });
   }
 
-  /* ── notifications (derived) ──────────────────────────────────────────── */
-  /**
-   * Builds the navbar notification list for a user from current state —
-   * apps that need their attention, new reviews, available updates, new
-   * apps from followed developers, and (for admins) the review queue.
-   */
+  /* notifications (derived) */
   notificationsFor(userId: string): Notification[] {
     const out: Notification[] = [];
     const profile = this.profileById(userId);
     const myApps = this.appsByDeveloper(userId);
     const weekAgo = Date.now() - 7 * 864e5;
-    const monthAgo = Date.now() - 30 * 864e5;
 
     for (const a of myApps) {
       if (a.status === 'rejected') {
-        out.push({ icon: '✕', text: `"${a.name}" needs changes before it can go live.`, link: `/edit/${a.id}` });
+        out.push({ icon: 'close', text: `"${a.name}" needs changes before it can go live.`, link: `/edit/${a.id}` });
       } else if (a.status === 'pending') {
-        out.push({ icon: '⏳', text: `"${a.name}" is waiting in the review queue.`, link: `/app/${a.id}` });
+        out.push({ icon: 'clock', text: `"${a.name}" is waiting in the review queue.`, link: `/app/${a.id}` });
       } else if (a.status === 'suspended') {
-        out.push({ icon: '⛔', text: `"${a.name}" was suspended by an admin.`, link: `/app/${a.id}` });
+        out.push({ icon: 'ban', text: `"${a.name}" was suspended by an admin.`, link: `/app/${a.id}` });
       }
     }
 
-    // new reviews on my apps (last 30 days, by other people)
-    const myAppIds = new Set(myApps.map((a) => a.id));
-    for (const r of this.reviews()) {
-      if (myAppIds.has(r.appId) && r.authorId !== userId && new Date(r.createdAt).getTime() > monthAgo) {
-        const app = this.appById(r.appId);
-        out.push({ icon: '⭐', text: `New ${r.rating}★ review on "${app?.name}".`, link: `/app/${r.appId}` });
-      }
-    }
-
-    // new apps from developers I follow (last 7 days)
     for (const dev of this.followedDevelopers()) {
       for (const a of this.appsByDeveloper(dev.id)) {
         if (a.status === 'approved' && new Date(a.createdAt).getTime() > weekAgo) {
-          out.push({ icon: '🚀', text: `${dev.fullName} published "${a.name}".`, link: `/app/${a.id}` });
+          out.push({ icon: 'rocket', text: `${dev.fullName} published "${a.name}".`, link: `/app/${a.id}` });
         }
       }
     }
 
-    // updates available in my library
     const updates = this.installs().filter((i) => i.userId === userId && this.hasUpdate(userId, i.appId));
     if (updates.length) {
       out.push({
-        icon: '🔄',
+        icon: 'refresh',
         text: `${updates.length} app${updates.length === 1 ? '' : 's'} in your library can be updated.`,
         link: '/library',
       });
     }
 
-    // admin: review queue
     if (profile?.role === 'admin') {
       const pending = this.pendingApps().length;
       if (pending) {
-        out.push({ icon: '📥', text: `${pending} app${pending === 1 ? '' : 's'} awaiting review.`, link: '/admin' });
+        out.push({ icon: 'inbox', text: `${pending} app${pending === 1 ? '' : 's'} awaiting review.`, link: '/admin' });
       }
       const reports = this.openReports().length;
       if (reports) {
-        out.push({ icon: '⚑', text: `${reports} open report${reports === 1 ? '' : 's'} to review.`, link: '/admin' });
+        out.push({ icon: 'flag', text: `${reports} open report${reports === 1 ? '' : 's'} to review.`, link: '/admin' });
       }
     }
 
     return out;
   }
 
-  /* ── derived totals ───────────────────────────────────────────────────── */
+  /* derived totals */
   readonly pendingCount = computed(() => this.apps().filter((a) => a.status === 'pending').length);
   readonly totalDownloads = computed(() =>
     this.apps().reduce((n, a) => n + a.downloadCount, 0),
   );
 
-  /** Wipe the in-browser database and re-seed (used by the admin page). */
   async resetData() {
     await Promise.all([
       this.db.profiles.clear(),
       this.db.apps.clear(),
-      this.db.reviews.clear(),
       this.db.installs.clear(),
       this.db.reports.clear(),
       this.db.wishlist.clear(),

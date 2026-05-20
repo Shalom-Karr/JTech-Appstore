@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../core/auth.service';
 import { ToastService } from '../core/toast.service';
 
-/** Dummy signup — creates a profile, no real validation. */
+/** Dummy signup: creates a profile, no real validation. */
 @Component({
   selector: 'jt-signup',
   standalone: true,

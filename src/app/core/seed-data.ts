@@ -1,4 +1,4 @@
-import { AppItem, Install, Platform, Profile, Report, Review, Wishlist } from './models';
+import { AppItem, Install, Platform, Profile, Report, Wishlist } from './models';
 
 /**
  * Mock seed data for the prototype. Loaded into IndexedDB on first run.
@@ -9,6 +9,7 @@ const icon = (seed: string) => `https://picsum.photos/seed/jt-icon-${seed}/512/5
 const shot = (seed: string, n: number) => `https://picsum.photos/seed/jt-${seed}-${n}/900/560`;
 const shots = (seed: string) => [shot(seed, 1), shot(seed, 2), shot(seed, 3)];
 const avatar = (u: string) => `https://i.pravatar.cc/200?u=jtech-app-${u}`;
+const forumPost = (slug: string) => `https://forums.jtechforums.org/t/${slug}`;
 
 export const SEED_PROFILES: Profile[] = [
   {
@@ -16,7 +17,7 @@ export const SEED_PROFILES: Profile[] = [
     username: 'you',
     fullName: 'Demo Developer',
     avatarUrl: avatar('you'),
-    bio: 'This is your demo account. Submit apps, download, review — it all persists in your browser.',
+    bio: 'This is your demo account. Submit apps and download apps; it all persists in your browser.',
     website: 'https://forums.jtechforums.org',
     email: 'demo@jtechappstore.test',
     role: 'user',
@@ -110,7 +111,7 @@ const RAW: SeedApp[] = [
     name: 'DafConnect',
     tagline: 'Daf Yomi with synced audio shiurim and notes',
     description:
-      'Follow the daily Daf with a clean, distraction-free reader. DafConnect syncs the text to a library of audio shiurim, lets you bookmark and annotate each amud, and keeps a streak of every daf you complete. Built for the JTech community — no ads, no tracking, fully offline-capable.',
+      'Follow the daily Daf with a clean, distraction-free reader. DafConnect syncs the text to a library of audio shiurim, lets you bookmark and annotate each amud, and keeps a streak of every daf you complete. Built for the JTech community: no ads, no tracking, fully offline-capable.',
     seed: 'dafconnect',
     category: 'torah',
     platform: 'Android',
@@ -144,7 +145,7 @@ const RAW: SeedApp[] = [
     name: 'Zmanim Live',
     tagline: 'Accurate zmanim for your exact location',
     description:
-      'Zmanim Live calculates alos, neitz, sof zman krias shema, mincha, shkia, and tzeis for wherever you are — down to your street. Add multiple cities, get a candle-lighting reminder before Shabbos, and share zmanim with one tap.',
+      'Zmanim Live calculates alos, neitz, sof zman krias shema, mincha, shkia, and tzeis for wherever you are, down to your street. Add multiple cities, get a candle-lighting reminder before Shabbos, and share zmanim with one tap.',
     seed: 'zmanimlive',
     category: 'zmanim',
     platform: 'Web',
@@ -159,9 +160,9 @@ const RAW: SeedApp[] = [
     id: 'app-alephbais',
     dev: 'u-tova',
     name: 'Aleph Bais Kids',
-    tagline: 'Playful Hebrew reading for ages 3–7',
+    tagline: 'Playful Hebrew reading for ages 3 to 7',
     description:
-      'Aleph Bais Kids turns learning the letters into a game. Trace each os, hear its sound, and build first words with friendly characters. Parent-controlled, screen-time aware, and entirely kosher — no third-party ads or links.',
+      'Aleph Bais Kids turns learning the letters into a game. Trace each os, hear its sound, and build first words with friendly characters. Parent-controlled, screen-time aware, and entirely kosher: no third-party ads or links.',
     seed: 'alephbais',
     category: 'kids',
     platform: 'Android',
@@ -209,7 +210,7 @@ const RAW: SeedApp[] = [
     name: 'Niggun Box',
     tagline: 'A library of niggunim for every moment',
     description:
-      'Niggun Box collects hundreds of niggunim — slow, lively, and Yom Tov — into curated playlists. Download for offline listening, build a simcha set, and discover new music from Jewish artists every week.',
+      'Niggun Box collects hundreds of niggunim (slow, lively, and Yom Tov) into curated playlists. Download for offline listening, build a simcha set, and discover new music from Jewish artists every week.',
     seed: 'niggunbox',
     category: 'music',
     platform: 'Android',
@@ -337,7 +338,7 @@ const RAW: SeedApp[] = [
     name: 'Gemach Finder',
     tagline: 'Locate the gemach you need, right now',
     description:
-      'A community directory of gemachim — from medical equipment to simcha supplies. Search by category and neighborhood, see hours, and get directions.',
+      'A community directory of gemachim, from medical equipment to simcha supplies. Search by category and neighborhood, see hours, and get directions.',
     seed: 'gemachfinder',
     category: 'chesed',
     platform: 'Android',
@@ -395,6 +396,7 @@ export const SEED_APPS: AppItem[] = RAW.map((a) => ({
   platform: a.platform,
   version: a.version,
   downloadUrl: `https://downloads.jtechappstore.test/${a.seed}`,
+  forumPostUrl: forumPost(a.seed),
   sizeMb: a.sizeMb,
   status: a.status,
   rejectionReason: a.rejectionReason ?? '',
@@ -404,33 +406,7 @@ export const SEED_APPS: AppItem[] = RAW.map((a) => ({
   updatedAt: a.created,
 }));
 
-const review = (
-  id: string,
-  appId: string,
-  authorId: string,
-  rating: number,
-  content: string,
-  createdAt: string,
-  developerReply = '',
-  replyAt = '',
-): Review => ({ id, appId, authorId, rating, content, createdAt, developerReply, replyAt });
-
-export const SEED_REVIEWS: Review[] = [
-  review('rv-1', 'app-dafconnect', 'u-you', 5, 'The synced shiurim are a game-changer for my commute. My streak is at 90 daf!', '2026-03-02T08:00:00Z'),
-  review('rv-2', 'app-dafconnect', 'u-tova', 4, 'Beautiful reader. Would love a tablet layout.', '2026-03-18T19:30:00Z', 'Thank you! A proper tablet layout is coming in the next release. — Moshe', '2026-03-19T08:00:00Z'),
-  review('rv-3', 'app-siddurplus', 'u-moshe', 5, 'Finally a siddur that picks the right tefilla automatically. The night mode is perfect for Maariv.', '2026-02-10T21:00:00Z'),
-  review('rv-4', 'app-siddurplus', 'u-dovid', 5, 'Clean and fast. Nusach Sefard is spot on.', '2026-03-05T07:15:00Z'),
-  review('rv-5', 'app-zmanimlive', 'u-shaindy', 5, 'The most accurate zmanim app I have used. Candle-lighting reminder never misses.', '2026-02-20T16:00:00Z'),
-  review('rv-6', 'app-zmanimlive', 'u-you', 4, 'Great app. Multi-city view is very handy for traveling.', '2026-04-01T11:30:00Z'),
-  review('rv-7', 'app-koshercheck', 'u-tova', 4, 'Scanning works well in the supermarket. Saved me more than once.', '2026-03-12T14:00:00Z'),
-  review('rv-8', 'app-alephbais', 'u-moshe', 5, 'My 4-year-old asks to play it. The parent controls are reassuring.', '2026-03-20T18:45:00Z'),
-  review('rv-9', 'app-niggunbox', 'u-you', 5, 'Offline playlists made our trip. Great Yom Tov set.', '2026-03-25T20:10:00Z'),
-  review('rv-10', 'app-parshaquiz', 'u-shaindy', 4, 'A hit at our Shabbos table. More questions please!', '2026-04-04T22:00:00Z'),
-  review('rv-11', 'app-tehillim', 'u-tova', 5, 'Organized a whole-neighborhood Tehillim in minutes. Wonderful chesed tool.', '2026-04-10T09:00:00Z'),
-];
-
 export const SEED_INSTALLS: Install[] = [
-  // dafconnect & koshercheck are seeded at an older version → "Update available"
   { userId: 'u-you', appId: 'app-dafconnect', installedAt: '2026-03-01T08:00:00Z', version: '3.0.0' },
   { userId: 'u-you', appId: 'app-zmanimlive', installedAt: '2026-03-28T10:00:00Z', version: '4.0.1' },
   { userId: 'u-you', appId: 'app-niggunbox', installedAt: '2026-03-24T19:00:00Z', version: '1.8.2' },

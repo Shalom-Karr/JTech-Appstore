@@ -7,11 +7,10 @@ import { ToastService } from '../core/toast.service';
 import { categoryIcon, categoryName, REPORT_REASONS } from '../core/models';
 import { AppCardComponent } from '../shared/app-card.component';
 import { EmptyStateComponent } from '../shared/empty-state.component';
-import { StarsComponent } from '../shared/stars.component';
 import { StatusBadgeComponent } from '../shared/status-badge.component';
-import { TimeAgoPipe } from '../shared/pipes';
+import { IconComponent } from '../shared/icon.component';
 
-/** Full app page — gallery, info, reviews, download, and reporting. */
+/** Full app page: gallery, info, download, and reporting. */
 @Component({
   selector: 'jt-app-detail',
   standalone: true,
@@ -20,17 +19,16 @@ import { TimeAgoPipe } from '../shared/pipes';
     FormsModule,
     AppCardComponent,
     EmptyStateComponent,
-    StarsComponent,
     StatusBadgeComponent,
-    TimeAgoPipe,
+    IconComponent,
   ],
   template: `
     @if (!app()) {
       <div class="max-w-2xl mx-auto px-4 py-12">
         <jt-empty-state
-          icon="🤷"
+          icon="search"
           title="App not found"
-          message="We couldn't find that app — it may have been removed."
+          message="We couldn't find that app. It may have been removed."
           linkText="Browse apps"
           linkTo="/browse"
         />
@@ -38,7 +36,7 @@ import { TimeAgoPipe } from '../shared/pipes';
     } @else {
       @if (app(); as a) {
       <div class="max-w-5xl mx-auto px-4 py-6 sm:py-8">
-        <a routerLink="/browse" class="text-sm text-brand hover:underline">← Back to browse</a>
+        <a routerLink="/browse" class="text-sm text-brand hover:underline inline-flex items-center gap-1"><jt-icon name="arrow-left" size="0.9em" /> Back to browse</a>
 
         @if (a.status !== 'approved') {
           <div class="jt-card mt-3 p-3 text-sm flex items-center gap-2 bg-gold-light">
@@ -51,7 +49,6 @@ import { TimeAgoPipe } from '../shared/pipes';
           </div>
         }
 
-        <!-- header -->
         <div class="jt-card p-5 sm:p-6 mt-3 flex flex-col sm:flex-row gap-5">
           <img
             [src]="a.iconUrl"
@@ -69,7 +66,7 @@ import { TimeAgoPipe } from '../shared/pipes';
                 {{ developer()?.fullName }}
               </a>
               @if (developer()?.verified) {
-                <span class="text-xs bg-brand-light text-brand px-1.5 py-0.5 rounded font-medium" title="Verified developer">✓ Verified</span>
+                <span class="text-xs bg-brand-light text-brand px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-0.5" title="Verified developer"><jt-icon name="check" size="0.85em" /> Verified</span>
               }
               @if (canFollow()) {
                 <button
@@ -77,36 +74,52 @@ import { TimeAgoPipe } from '../shared/pipes';
                   class="jt-btn jt-btn-ghost text-xs py-0.5 px-2"
                   (click)="toggleFollow()"
                 >
-                  {{ following() ? '✓ Following' : '+ Follow' }}
+                  @if (following()) {
+                    <jt-icon name="check" size="0.9em" /> Following
+                  } @else {
+                    <jt-icon name="plus" size="0.9em" /> Follow
+                  }
                 </button>
               }
             </div>
-            <div class="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <jt-stars [value]="rating().avg" />
-              <span class="text-sm text-muted">
-                {{ rating().avg || '—' }}
-                ({{ rating().count }} review{{ rating().count === 1 ? '' : 's' }})
-              </span>
-              @if (store.wishlistCount(id) > 0) {
-                <span class="text-sm text-muted">· ♥ {{ store.wishlistCount(id) }} wishlisted</span>
-              }
-            </div>
+            @if (store.wishlistCount(id) > 0) {
+              <div class="mt-3 text-sm text-muted inline-flex items-center gap-1">
+                <jt-icon name="heart-filled" size="0.9em" /> {{ store.wishlistCount(id) }} wishlisted
+              </div>
+            }
           </div>
           <div class="flex flex-col items-stretch sm:items-end gap-2 sm:w-44">
             <button class="jt-btn jt-btn-primary w-full" (click)="download()">
-              {{ installed() ? '↻ Download again' : '⬇ Get app' }}
+              @if (installed()) {
+                <jt-icon name="refresh" size="1em" /> Download again
+              } @else {
+                <jt-icon name="download" size="1em" /> Get app
+              }
             </button>
             @if (installed()) {
-              <span class="text-xs text-good text-center sm:text-right">✓ In your library</span>
+              <span class="text-xs text-good text-center sm:text-right inline-flex items-center gap-1 sm:justify-end"><jt-icon name="check" size="0.9em" /> In your library</span>
             }
             <button class="jt-btn jt-btn-ghost w-full" (click)="toggleWishlist()">
-              {{ wishlisted() ? '♥ Wishlisted' : '♡ Wishlist' }}
+              @if (wishlisted()) {
+                <jt-icon name="heart-filled" size="1em" /> Wishlisted
+              } @else {
+                <jt-icon name="heart" size="1em" /> Wishlist
+              }
             </button>
-            <button class="jt-btn jt-btn-ghost w-full" (click)="toggleReport()">⚑ Report</button>
+            @if (a.forumPostUrl) {
+              <a
+                [href]="a.forumPostUrl"
+                target="_blank"
+                rel="noopener"
+                class="jt-btn jt-btn-ghost w-full"
+              >
+                <jt-icon name="message" size="1em" /> View forum post
+              </a>
+            }
+            <button class="jt-btn jt-btn-ghost w-full" (click)="toggleReport()"><jt-icon name="flag" size="1em" /> Report</button>
           </div>
         </div>
 
-        <!-- meta strip -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
           @for (m of meta(); track m.label) {
             <div class="jt-card p-3 text-center">
@@ -116,7 +129,6 @@ import { TimeAgoPipe } from '../shared/pipes';
           }
         </div>
 
-        <!-- report form -->
         @if (reportOpen()) {
           <div class="jt-card p-5 mt-4 border-bad">
             <h3 class="font-semibold mb-2">Report this app</h3>
@@ -139,7 +151,6 @@ import { TimeAgoPipe } from '../shared/pipes';
           </div>
         }
 
-        <!-- screenshots -->
         <section class="mt-6">
           <h2 class="font-display text-xl font-bold mb-3">Screenshots</h2>
           <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
@@ -156,114 +167,24 @@ import { TimeAgoPipe } from '../shared/pipes';
           </div>
         </section>
 
-        <!-- description -->
         <section class="mt-6">
           <h2 class="font-display text-xl font-bold mb-2">About this app</h2>
           <p class="text-ink/90 whitespace-pre-line leading-relaxed">{{ a.description }}</p>
-        </section>
-
-        <!-- reviews -->
-        <section class="mt-8">
-          <h2 class="font-display text-xl font-bold mb-3">
-            Ratings & reviews ({{ rating().count }})
-          </h2>
-
-          @if (auth.isLoggedIn() && a.status === 'approved' && !alreadyReviewed()) {
-            <div class="jt-card p-4 mb-4">
-              <h3 class="font-semibold text-sm mb-2">Write a review</h3>
-              <div class="flex items-center gap-1 mb-2">
-                @for (n of [1, 2, 3, 4, 5]; track n) {
-                  <button
-                    type="button"
-                    (click)="myRating.set(n)"
-                    class="text-2xl"
-                    [class.text-gold]="n <= myRating()"
-                    [class.text-line]="n > myRating()"
-                    [attr.aria-label]="n + ' stars'"
-                  >
-                    ★
-                  </button>
-                }
-              </div>
-              <textarea
-                class="jt-input"
-                rows="3"
-                placeholder="Share what you think of this app…"
-                [ngModel]="myReview()"
-                (ngModelChange)="myReview.set($event)"
-              ></textarea>
-              <button class="jt-btn jt-btn-primary mt-3" (click)="submitReview()">Post review</button>
-            </div>
-          } @else if (alreadyReviewed()) {
-            <p class="text-sm text-muted mb-4">✓ You've already reviewed this app.</p>
-          }
-
-          @if (reviews().length) {
-            <div class="flex flex-col gap-3">
-              @for (r of reviews(); track r.id) {
-                <div class="jt-card p-4">
-                  <div class="flex items-center gap-2">
-                    <img
-                      [src]="store.profileById(r.authorId)?.avatarUrl"
-                      alt=""
-                      class="w-8 h-8 rounded-full object-cover border border-line"
-                    />
-                    <div class="min-w-0">
-                      <div class="font-medium text-sm truncate">
-                        {{ store.profileById(r.authorId)?.fullName }}
-                      </div>
-                      <div class="text-xs text-muted">{{ r.createdAt | timeAgo }}</div>
-                    </div>
-                    <div class="ml-auto"><jt-stars [value]="r.rating" size="0.85rem" /></div>
-                  </div>
-                  <p class="text-sm mt-2 text-ink/90">{{ r.content }}</p>
-
-                  @if (r.developerReply) {
-                    <div class="mt-3 ml-4 pl-3 border-l-2 border-line bg-surface-2 rounded-r-lg p-3">
-                      <div class="text-xs font-semibold text-brand">
-                        Developer's reply
-                        <span class="text-muted font-normal">· {{ r.replyAt | timeAgo }}</span>
-                      </div>
-                      <p class="text-sm mt-1 text-ink/90">{{ r.developerReply }}</p>
-                    </div>
-                  } @else if (isDeveloper()) {
-                    @if (replyOpen() === r.id) {
-                      <div class="mt-3 ml-4">
-                        <textarea
-                          class="jt-input"
-                          rows="2"
-                          placeholder="Reply to this review…"
-                          [ngModel]="replyText()"
-                          (ngModelChange)="replyText.set($event)"
-                        ></textarea>
-                        <div class="flex gap-2 mt-2">
-                          <button class="jt-btn jt-btn-primary text-sm py-1" (click)="submitReply(r.id)">
-                            Post reply
-                          </button>
-                          <button class="jt-btn jt-btn-ghost text-sm py-1" (click)="closeReply()">
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    } @else {
-                      <button
-                        type="button"
-                        class="jt-btn jt-btn-ghost text-xs py-0.5 px-2 mt-2"
-                        (click)="openReply(r.id)"
-                      >
-                        Reply
-                      </button>
-                    }
-                  }
-                </div>
-              }
-            </div>
-          } @else {
-            <p class="text-muted text-sm">No reviews yet — be the first to review this app.</p>
+          @if (a.forumPostUrl) {
+            <p class="mt-4 text-sm">
+              <a
+                [href]="a.forumPostUrl"
+                target="_blank"
+                rel="noopener"
+                class="text-brand font-medium hover:underline inline-flex items-center gap-1.5"
+              >
+                <jt-icon name="message" size="1em" /> Discuss this app on JTech Forums
+                <jt-icon name="external" size="0.9em" />
+              </a>
+            </p>
           }
         </section>
 
-        <!-- more from developer / similar -->
         @if (moreApps().length) {
           <section class="mt-10">
             <h2 class="font-display text-xl font-bold mb-3">More to discover</h2>
@@ -276,14 +197,13 @@ import { TimeAgoPipe } from '../shared/pipes';
         }
       </div>
 
-      <!-- lightbox -->
       @if (lightbox(); as url) {
         <div
           class="fixed inset-0 bg-ink/80 z-50 flex items-center justify-center p-4"
           (click)="lightbox.set(null)"
         >
           <img [src]="url" alt="" class="max-h-full max-w-full rounded-xl" />
-          <button class="absolute top-4 right-4 text-white text-3xl" aria-label="Close">✕</button>
+          <button class="absolute top-4 right-4 text-white" aria-label="Close"><jt-icon name="close" size="2rem" /></button>
         </div>
       }
       }
@@ -306,16 +226,10 @@ export class AppDetailComponent {
 
   app = computed(() => this.store.appById(this.appId()));
   developer = computed(() => this.store.profileById(this.app()?.developerId));
-  rating = computed(() => this.store.appRating(this.appId()));
-  reviews = computed(() => this.store.reviewsForApp(this.appId()));
 
   installed = computed(() => {
     const u = this.auth.currentUser();
     return u ? this.store.isInstalled(u.id, this.appId()) : false;
-  });
-  alreadyReviewed = computed(() => {
-    const u = this.auth.currentUser();
-    return u ? this.store.hasReviewed(this.appId(), u.id) : false;
   });
   wishlisted = computed(() => {
     const u = this.auth.currentUser();
@@ -340,12 +254,14 @@ export class AppDetailComponent {
     const a = this.app();
     if (!a) return [];
     return [
-      { label: 'Category', value: `${categoryIcon(a.category)} ${categoryName(a.category)}` },
+      { label: 'Category', value: categoryName(a.category) },
       { label: 'Platform', value: a.platform },
       { label: 'Version', value: a.version },
       { label: 'Size', value: `${a.sizeMb} MB` },
     ];
   });
+
+  categoryIcon = categoryIcon;
 
   moreApps = computed(() => {
     const a = this.app();
@@ -365,12 +281,6 @@ export class AppDetailComponent {
   reportOpen = signal(false);
   reportReason = signal(REPORT_REASONS[0]);
   reportDetail = signal('');
-
-  myRating = signal(5);
-  myReview = signal('');
-
-  replyOpen = signal<string | null>(null);
-  replyText = signal('');
 
   constructor() {
     if (this.appId()) this.store.trackView(this.appId());
@@ -436,44 +346,6 @@ export class AppDetailComponent {
     });
     this.reportOpen.set(false);
     this.reportDetail.set('');
-    this.toast.success('Thanks — the moderators have been notified.');
-  }
-
-  async submitReview() {
-    const u = this.auth.currentUser();
-    const a = this.app();
-    if (!u || !a) return;
-    if (!this.myReview().trim()) {
-      this.toast.error('Please write a few words for your review.');
-      return;
-    }
-    await this.store.addReview({
-      appId: a.id,
-      authorId: u.id,
-      rating: this.myRating(),
-      content: this.myReview().trim(),
-    });
-    this.myReview.set('');
-    this.toast.success('Your review has been posted. Yasher koach!');
-  }
-
-  openReply(reviewId: string) {
-    this.replyText.set('');
-    this.replyOpen.set(reviewId);
-  }
-
-  closeReply() {
-    this.replyOpen.set(null);
-    this.replyText.set('');
-  }
-
-  async submitReply(reviewId: string) {
-    if (!this.replyText().trim()) {
-      this.toast.error('Please write a reply.');
-      return;
-    }
-    await this.store.replyToReview(reviewId, this.replyText().trim());
-    this.closeReply();
-    this.toast.success('Your reply has been posted.');
+    this.toast.success('Thanks. The moderators have been notified.');
   }
 }

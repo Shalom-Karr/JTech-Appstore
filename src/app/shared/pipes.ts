@@ -1,6 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-/** Compact count formatting — 1234 → "1.2k". */
+/** Compact count formatting: 1234 to "1.2k". */
 @Pipe({ name: 'count', standalone: true })
 export class CountPipe implements PipeTransform {
   transform(value: number | null | undefined): string {

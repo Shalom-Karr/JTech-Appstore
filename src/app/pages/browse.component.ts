@@ -5,8 +5,9 @@ import { StoreService } from '../core/store.service';
 import { CATEGORIES, PLATFORMS, Platform } from '../core/models';
 import { AppCardComponent } from '../shared/app-card.component';
 import { EmptyStateComponent } from '../shared/empty-state.component';
+import { IconComponent } from '../shared/icon.component';
 
-type Sort = 'popular' | 'rating' | 'recent' | 'name';
+type Sort = 'popular' | 'recent' | 'name';
 
 interface SavedSearch {
   q: string;
@@ -21,15 +22,14 @@ const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
 @Component({
   selector: 'jt-browse',
   standalone: true,
-  imports: [FormsModule, AppCardComponent, EmptyStateComponent],
+  imports: [FormsModule, AppCardComponent, EmptyStateComponent, IconComponent],
   template: `
     <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
       <h1 class="font-display text-2xl sm:text-3xl font-bold mb-4">Browse apps</h1>
 
-      <!-- search -->
       <div class="relative mb-4">
         <div class="flex items-center bg-surface border border-line rounded-lg px-3">
-          <span class="text-muted">🔍</span>
+          <span class="text-muted"><jt-icon name="search" /></span>
           <input
             [ngModel]="q()"
             (ngModelChange)="onQueryInput($event)"
@@ -41,7 +41,7 @@ const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
             autocomplete="off"
           />
           @if (q()) {
-            <button (click)="q.set('')" class="text-muted hover:text-ink" aria-label="Clear search">✕</button>
+            <button (click)="q.set('')" class="text-muted hover:text-ink" aria-label="Clear search"><jt-icon name="close" size="1em" /></button>
           }
         </div>
 
@@ -54,11 +54,11 @@ const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
               <li>
                 <button
                   type="button"
-                  class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-surface-2"
+                  class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-surface-2 inline-flex items-center gap-2"
                   (mousedown)="pickSuggestion(s)"
                 >
-                  <span class="text-muted">🔍</span>
-                  <span class="ml-2">{{ s }}</span>
+                  <span class="text-muted"><jt-icon name="search" size="0.9em" /></span>
+                  <span>{{ s }}</span>
                 </button>
               </li>
             }
@@ -66,14 +66,13 @@ const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
         }
       </div>
 
-      <!-- filters -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div>
           <label class="jt-label" for="cat">Category</label>
           <select id="cat" class="jt-input" [ngModel]="category()" (ngModelChange)="category.set($event)">
             <option value="">All categories</option>
             @for (c of categories; track c.slug) {
-              <option [value]="c.slug">{{ c.icon }} {{ c.name }}</option>
+              <option [value]="c.slug">{{ c.name }}</option>
             }
           </select>
         </div>
@@ -90,20 +89,18 @@ const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
           <label class="jt-label" for="sort">Sort by</label>
           <select id="sort" class="jt-input" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
             <option value="popular">Most downloaded</option>
-            <option value="rating">Highest rated</option>
             <option value="recent">Newest</option>
-            <option value="name">Name (A–Z)</option>
+            <option value="name">Name (A to Z)</option>
           </select>
         </div>
       </div>
 
-      <!-- saved searches -->
       <div class="flex flex-wrap items-center gap-2 mb-4">
         <button
           (click)="saveSearch()"
           class="jt-btn jt-btn-ghost text-sm py-1 px-3"
         >
-          ⭐ Save this search
+          <jt-icon name="star" size="1em" /> Save this search
         </button>
         @for (s of savedSearches(); track $index) {
           <span class="jt-pill bg-surface-2 border border-line flex items-center gap-1.5">
@@ -120,7 +117,7 @@ const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
               aria-label="Delete saved search"
               (click)="deleteSearch($index)"
             >
-              ✕
+              <jt-icon name="close" size="0.9em" />
             </button>
           </span>
         }
@@ -141,7 +138,7 @@ const SAVED_SEARCHES_KEY = 'jtech-appstore-saved-searches';
         </div>
       } @else {
         <jt-empty-state
-          icon="🔍"
+          icon="search"
           title="No apps found"
           message="Try a different search or clear the filters."
           linkText="Submit an app"
@@ -208,9 +205,6 @@ export class BrowseComponent {
       case 'popular':
         sorted.sort((a, b) => b.downloadCount - a.downloadCount);
         break;
-      case 'rating':
-        sorted.sort((a, b) => this.store.appRating(b.id).avg - this.store.appRating(a.id).avg);
-        break;
       case 'recent':
         sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         break;
@@ -227,7 +221,6 @@ export class BrowseComponent {
   }
 
   onSearchBlur() {
-    // delay so a suggestion mousedown can register first
     setTimeout(() => this.showSuggestions.set(false), 120);
   }
 
@@ -251,7 +244,7 @@ export class BrowseComponent {
     try {
       localStorage.setItem(SAVED_SEARCHES_KEY, JSON.stringify(list));
     } catch {
-      // ignore storage failures
+      /* ignore */
     }
   }
 

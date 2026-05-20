@@ -7,17 +7,18 @@ import { AuthService } from '../core/auth.service';
 import { ToastService } from '../core/toast.service';
 import { EmptyStateComponent } from '../shared/empty-state.component';
 import { StatusBadgeComponent } from '../shared/status-badge.component';
+import { IconComponent } from '../shared/icon.component';
 
 /** Submit a new app (/submit) or edit an existing one (/edit/:id). */
 @Component({
   selector: 'jt-submit',
   standalone: true,
-  imports: [FormsModule, EmptyStateComponent, StatusBadgeComponent],
+  imports: [FormsModule, EmptyStateComponent, StatusBadgeComponent, IconComponent],
   template: `
     @if (!auth.currentUser()) {
       <div class="max-w-2xl mx-auto px-4 py-12">
         <jt-empty-state
-          icon="🔒"
+          icon="lock"
           title="Log in to submit an app"
           message="You need an account to submit or edit an app on the JTech App Store."
           linkText="Log in"
@@ -26,12 +27,12 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
       </div>
     } @else if (editId() && !app()) {
       <div class="max-w-2xl mx-auto px-4 py-12">
-        <jt-empty-state icon="🤷" title="App not found" linkText="Browse apps" linkTo="/browse" />
+        <jt-empty-state icon="search" title="App not found" linkText="Browse apps" linkTo="/browse" />
       </div>
     } @else if (editId() && !canEdit()) {
       <div class="max-w-2xl mx-auto px-4 py-12">
         <jt-empty-state
-          icon="🚫"
+          icon="ban"
           title="Not your app"
           message="You can only edit apps that you submitted."
           linkText="Browse apps"
@@ -68,9 +69,8 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
           }
         }
 
-        <!-- review-process notice -->
         <div class="jt-card jt-mosaic p-4 mb-5 text-sm">
-          <strong>🛡️ How review works:</strong> after you submit, your app appears in the admin
+          <strong class="inline-flex items-center gap-1.5"><jt-icon name="shield-check" /> How review works:</strong> after you submit, your app appears in the admin
           queue with the status <em>In review</em>. An admin approves it (it goes live) or rejects
           it with feedback you'll see here.
         </div>
@@ -98,7 +98,7 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
               <select id="category" name="category" class="jt-input" [(ngModel)]="category">
                 <option value="" disabled>Choose a category…</option>
                 @for (c of categories; track c.slug) {
-                  <option [value]="c.slug">{{ c.icon }} {{ c.name }}</option>
+                  <option [value]="c.slug">{{ c.name }}</option>
                 }
               </select>
             </div>
@@ -135,6 +135,18 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
           </div>
 
           <div>
+            <label class="jt-label" for="forum">Forum post URL</label>
+            <input
+              id="forum"
+              name="forum"
+              class="jt-input"
+              placeholder="https://forums.jtechforums.org/t/your-app"
+              [(ngModel)]="forumPostUrl"
+            />
+            <p class="text-xs text-muted mt-1">Link to your app's discussion thread on JTech Forums so users can discuss and follow updates.</p>
+          </div>
+
+          <div>
             <label class="jt-label" for="description">Description</label>
             <textarea
               id="description"
@@ -149,11 +161,11 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
           <div>
             <label class="jt-label" for="icon">App icon</label>
             <div class="flex items-center gap-3">
-              <div class="w-16 h-16 shrink-0 rounded-2xl bg-paper border border-line overflow-hidden flex items-center justify-center text-muted text-xl">
+              <div class="w-16 h-16 shrink-0 rounded-2xl bg-paper border border-line overflow-hidden flex items-center justify-center text-muted">
                 @if (iconUrl().trim()) {
                   <img [src]="iconUrl()" alt="icon preview" class="w-full h-full object-cover" />
                 } @else {
-                  <span>📦</span>
+                  <jt-icon name="package" size="1.5rem" />
                 }
               </div>
               <div
@@ -211,7 +223,7 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
                     @if (url.trim()) {
                       <img [src]="url" alt="preview" class="w-full h-full object-cover" />
                     } @else {
-                      <span>🖼️</span>
+                      <jt-icon name="image" size="1.2rem" />
                     }
                   </div>
                   <input
@@ -222,12 +234,12 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
                     (ngModelChange)="setShot($index, $any($event))"
                   />
                   @if (screenshots().length > 1) {
-                    <button type="button" class="jt-btn jt-btn-ghost shrink-0" (click)="removeShot($index)" aria-label="Remove">✕</button>
+                    <button type="button" class="jt-btn jt-btn-ghost shrink-0" (click)="removeShot($index)" aria-label="Remove"><jt-icon name="close" /></button>
                   }
                 </div>
               }
             </div>
-            <button type="button" class="jt-btn jt-btn-ghost mt-3" (click)="addShot()">+ Add screenshot</button>
+            <button type="button" class="jt-btn jt-btn-ghost mt-3" (click)="addShot()"><jt-icon name="plus" /> Add screenshot</button>
           </div>
 
           <label class="flex items-start gap-2 text-sm">
@@ -244,7 +256,7 @@ import { StatusBadgeComponent } from '../shared/status-badge.component';
             </button>
             @if (editId()) {
               <button type="button" class="jt-btn jt-btn-ghost ml-auto !text-bad" (click)="remove()">
-                🗑️ Delete app
+                <jt-icon name="trash" /> Delete app
               </button>
             }
           </div>
@@ -282,6 +294,7 @@ export class SubmitComponent {
   version = signal('1.0.0');
   sizeMb = signal(10);
   downloadUrl = signal('');
+  forumPostUrl = signal('');
   description = signal('');
   iconUrl = signal('https://picsum.photos/seed/jt-new-app/512/512');
   screenshots = signal<string[]>(['https://picsum.photos/seed/jt-new-shot/900/560']);
@@ -311,6 +324,7 @@ export class SubmitComponent {
       this.version.set(a.version);
       this.sizeMb.set(a.sizeMb);
       this.downloadUrl.set(a.downloadUrl);
+      this.forumPostUrl.set(a.forumPostUrl ?? '');
       this.description.set(a.description);
       this.iconUrl.set(a.iconUrl);
       this.screenshots.set(a.screenshotUrls.length ? [...a.screenshotUrls] : ['']);
@@ -413,13 +427,14 @@ export class SubmitComponent {
       platform: this.platform(),
       version: this.version().trim() || '1.0.0',
       downloadUrl: this.downloadUrl().trim(),
+      forumPostUrl: this.forumPostUrl().trim(),
       sizeMb: Number(this.sizeMb()),
     };
 
     const id = this.editId();
     if (id && this.app()) {
       await this.store.resubmitApp(id, fields);
-      this.toast.success('Saved — your app is back in the review queue.');
+      this.toast.success('Saved. Your app is back in the review queue.');
       this.router.navigate(['/profile']);
     } else {
       await this.store.submitApp({ developerId: user.id, ...fields });
